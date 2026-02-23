@@ -92,20 +92,20 @@ export default function Home() {
     }
 
     return (
-        <main className="py-50 h-screen bg-teal-50">
+        <main className="py-50 h-screen bg-emerald-50">
             {mode === 'home' && (
                 <div className="w-90 h-60 bg-white rounded-2xl shadow-lg mx-auto">
-                    <h1 className="font-extrabold text-4xl text-center p-7 text-teal-900">Bill Splitter</h1>
+                    <h1 className="font-extrabold text-4xl text-center p-7 text-emerald-900 tracking-tight">Bill Splitter</h1>
 
                     <div className="flex flex-col items-center gap-4">
                         <button
-                            className="bg-teal-700 rounded-md text-white font-bold px-6 py-2 shadow-md hover:bg-teal-800"
+                            className="bg-emerald-700 rounded-md text-white font-bold px-6 py-2 shadow-md hover:bg-emerald-800 transition-colors duration-150"
                             onClick={() => setMode('create')}
                         >
                             Create New Session
                         </button>
                         <button
-                            className="bg-white rounded-md border-2 border-solid border-teal-500 text-teal-900 font-bold px-6 py-2 shadow-md hover:bg-teal-50"
+                            className="bg-white rounded-md border-2 border-solid border-emerald-500 text-emerald-900 font-bold px-6 py-2 shadow-md hover:bg-emerald-50 transition-colors duration-150"
                             onClick={() => setMode('join')}
                         >
                             Join Existing Session
@@ -115,13 +115,13 @@ export default function Home() {
             )}
             {mode === 'create' && (
                 <div className="w-90 h-65 bg-white rounded-2xl shadow-lg mx-auto p-6">
-                    <h1 className="font-extrabold text-4xl text-center mb-6 text-teal-900">
+                    <h1 className="font-extrabold text-4xl text-center mb-6 text-emerald-900 tracking-tight">
                         Create Session
                     </h1>
 
                     <div className="flex flex-col items-center gap-4">
                         <div className="w-full max-w-xs">
-                            <label className="block text-teal-900 font-semibold mb-2">
+                            <label className="block text-emerald-900 font-semibold mb-2">
                                 Enter Name:
                             </label>
                             <input
@@ -129,7 +129,7 @@ export default function Home() {
                                 placeholder="Name"
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
                             />
                         </div>
 
@@ -137,7 +137,7 @@ export default function Home() {
 
                         <div className="flex gap-3 mt-2">
                             <button
-                                className="bg-teal-700 text-white font-bold px-6 py-2 rounded-md shadow-md hover:bg-teal-800 disabled:opacity-50"
+                                className="bg-emerald-700 text-white font-bold px-6 py-2 rounded-md shadow-md hover:bg-emerald-800 disabled:opacity-50 transition-colors duration-150"
                                 onClick={handleCreateSession}
                                 disabled={loading}
                             >
@@ -145,7 +145,7 @@ export default function Home() {
                             </button>
                             <button
                                 onClick={() => setMode('home')}
-                                className="bg-teal-100 text-teal-900 font-bold px-6 py-2 rounded-md shadow-md hover:bg-teal-200"
+                                className="bg-emerald-100 text-emerald-900 font-bold px-6 py-2 rounded-md shadow-md hover:bg-emerald-200 transition-colors duration-150"
                             >
                                 Back
                             </button>
@@ -155,13 +155,13 @@ export default function Home() {
             )}
             {mode === 'join' && (
                 <div className="w-90 h-85 bg-white rounded-2xl shadow-lg mx-auto p-6">
-                    <h1 className="font-extrabold text-4xl text-center mb-6 text-teal-900">
+                    <h1 className="font-extrabold text-4xl text-center mb-6 text-emerald-900 tracking-tight">
                         Join Session
                     </h1>
 
                     <div className="flex flex-col items-center gap-4">
                         <div className="w-full max-w-xs">
-                            <label className="block text-teal-900 font-semibold mb-2">
+                            <label className="block text-emerald-900 font-semibold mb-2">
                                 Enter Name:
                             </label>
                             <input
@@ -169,12 +169,12 @@ export default function Home() {
                                 placeholder="Name"
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
                             />
                         </div>
 
                         <div className="w-full max-w-xs">
-                            <label className="block text-teal-900 font-semibold mb-2">
+                            <label className="block text-emerald-900 font-semibold mb-2">
                                 Enter Session Code:
                             </label>
                             <input
@@ -183,7 +183,7 @@ export default function Home() {
                                 value={sessionCode}
                                 onChange={(e) => setSessionCode(e.target.value)}
                                 maxLength={6}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 uppercase tracking-widest text-center font-mono text-lg"
+                                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 uppercase tracking-widest text-center font-mono text-lg"
                             />
                         </div>
 
@@ -191,7 +191,7 @@ export default function Home() {
 
                         <div className="flex gap-3 mt-2">
                             <button
-                                className="bg-teal-700 text-white font-bold px-6 py-2 rounded-md shadow-md hover:bg-teal-800 disabled:opacity-50"
+                                className="bg-emerald-700 text-white font-bold px-6 py-2 rounded-md shadow-md hover:bg-emerald-800 disabled:opacity-50 transition-colors duration-150"
                                 onClick={handleJoinSession}
                                 disabled={loading}
                             >
@@ -199,7 +199,7 @@ export default function Home() {
                             </button>
                             <button
                                 onClick={() => setMode('home')}
-                                className="bg-teal-100 text-teal-900 font-bold px-6 py-2 rounded-md shadow-md hover:bg-teal-200"
+                                className="bg-emerald-100 text-emerald-900 font-bold px-6 py-2 rounded-md shadow-md hover:bg-emerald-200 transition-colors duration-150"
                             >
                                 Back
                             </button>

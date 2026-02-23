@@ -132,21 +132,33 @@ export default function TaxTipPage({ params }: { params: Promise<{ id: string }>
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-teal-50 flex items-center justify-center">
-        <p className="text-teal-900 text-lg">Loading...</p>
+      <div className="min-h-screen bg-emerald-50 p-8 pb-24">
+        <div className="max-w-2xl mx-auto">
+          <div className="h-9 w-40 bg-gray-200 rounded-lg animate-skeleton mb-2" />
+          <div className="h-5 w-32 bg-gray-200 rounded-full animate-skeleton mb-6" />
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="bg-white rounded-xl shadow-sm p-6 mb-4">
+              <div className="h-6 w-28 bg-gray-200 rounded animate-skeleton mb-3" />
+              <div className="space-y-2">
+                <div className="h-4 w-full bg-gray-200 rounded animate-skeleton" />
+                <div className="h-4 w-3/4 bg-gray-200 rounded animate-skeleton" />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-teal-50 p-8 pb-24">
-      <div className="max-w-3xl mx-auto">
-        <h1 className="text-3xl font-bold text-teal-900 mb-2">Tax and Tip</h1>
-        <p className="text-gray-600 mb-6">Session ID: {id}</p>
+    <div className="min-h-screen bg-emerald-50 p-8 pb-24">
+      <div className="max-w-2xl mx-auto">
+        <h1 className="text-3xl font-bold tracking-tight text-emerald-900 mb-2">Tax and Tip</h1>
+        <span className="inline-flex items-center px-3 py-0.5 bg-emerald-100 text-emerald-800 font-mono text-sm rounded-full mb-6">{id}</span>
 
         {/* Itemized Receipt Breakdown */}
-        <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200 mb-4">
-          <h2 className="font-bold text-xl text-teal-900 mb-3">Your Items</h2>
+        <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 p-6 mb-4">
+          <h2 className="font-bold text-xl text-emerald-900 mb-3">Your Items</h2>
 
           <div className="space-y-2 mb-4">
             {userSelectedShares.map((share) => {
@@ -176,8 +188,8 @@ export default function TaxTipPage({ params }: { params: Promise<{ id: string }>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-md p-4 border border-gray-200 mb-4">
-        <h1 className="font-bold text-xl text-teal-900 mb-3">Tax</h1>
+        <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 p-4 mb-4">
+        <h1 className="font-bold text-xl text-emerald-900 mb-3">Tax</h1>
         <div className="flex justify-between items-center mb-2">
           <div>
             <p className="text-gray-700">Subtotal</p>
@@ -191,13 +203,13 @@ export default function TaxTipPage({ params }: { params: Promise<{ id: string }>
         </div>
 
         <div className="border-t border-gray-300 pt-2 mt-2 flex justify-between items-center">
-          <p className="font-bold text-teal-900">Subtotal + Tax</p>
-          <p className="font-bold text-teal-900">${(subtotal + taxAmount).toFixed(2)}</p>
+          <p className="font-bold text-emerald-900">Subtotal + Tax</p>
+          <p className="font-bold text-emerald-900">${(subtotal + taxAmount).toFixed(2)}</p>
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow-md p-4 border border-gray-200 mb-4">
-        <h1 className="font-bold text-xl text-teal-900 mb-3">Tip</h1>
+      <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 p-4 mb-4">
+        <h1 className="font-bold text-xl text-emerald-900 mb-3">Tip</h1>
 
         <div className="flex flex-col items-center gap-3 mt-4">
           <div className="flex justify-center items-center gap-3">
@@ -205,8 +217,8 @@ export default function TaxTipPage({ params }: { params: Promise<{ id: string }>
               <button
                 key={p}
                 onClick={() => { setCustomTip(false); setSelectedTipPercent(p); }}
-                className={`font-bold px-4 py-2 rounded-md shadow-md bg-white text-teal-900 hover:bg-teal-50 ${
-                  !customTip && selectedTipPercent === p ? 'outline-none ring-2 ring-teal-600 bg-teal-50' : ''
+                className={`font-bold px-4 py-2 rounded-md shadow-md bg-white text-emerald-900 hover:bg-emerald-50 transition-colors duration-150 ${
+                  !customTip && selectedTipPercent === p ? 'outline-none ring-2 ring-emerald-600 bg-emerald-50' : ''
                 }`}
               >
                 {p}%
@@ -214,8 +226,8 @@ export default function TaxTipPage({ params }: { params: Promise<{ id: string }>
             ))}
             <button
               onClick={() => { setCustomTip(true); setSelectedTipPercent(undefined); }}
-              className={`font-bold px-4 py-2 rounded-md shadow-md bg-white text-teal-900 hover:bg-teal-50 ${
-                customTip ? 'outline-none ring-2 ring-teal-600 bg-teal-50' : ''
+              className={`font-bold px-4 py-2 rounded-md shadow-md bg-white text-emerald-900 hover:bg-emerald-50 transition-colors duration-150 ${
+                customTip ? 'outline-none ring-2 ring-emerald-600 bg-emerald-50' : ''
               }`}
             >
               Custom
@@ -236,9 +248,9 @@ export default function TaxTipPage({ params }: { params: Promise<{ id: string }>
                 }}
                 onFocus={(e) => e.target.select()}
                 placeholder="0"
-                className="w-20 px-3 py-2 border border-gray-300 rounded-lg text-center focus:outline-none focus:ring-2 focus:ring-teal-600"
+                className="w-20 px-3 py-2 border border-gray-300 rounded-lg text-center focus:outline-none focus:ring-2 focus:ring-emerald-600"
               />
-              <span className="text-teal-900 font-bold">%</span>
+              <span className="text-emerald-900 font-bold">%</span>
             </div>
           )}
         </div>
@@ -255,22 +267,22 @@ export default function TaxTipPage({ params }: { params: Promise<{ id: string }>
 
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t-2 border-teal-600 shadow-lg p-4">
-        <div className="max-w-4xl mx-auto flex justify-between items-center">
+      <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] p-4">
+        <div className="max-w-2xl mx-auto flex justify-between items-center">
           <button
             onClick={() => router.push(`/session/${id}/items`)}
-            className="bg-gray-500 text-white font-bold px-8 py-3 rounded-md shadow-md hover:bg-gray-600"
+            className="bg-gray-500 text-white font-bold px-8 py-3 rounded-md shadow-md hover:bg-gray-600 transition-colors duration-150"
           >
             Back
           </button>
           <div>
             <p className="text-sm text-gray-600">Final Total</p>
-            <p className="text-2xl font-bold text-teal-900">${finalTotal.toFixed(2)}</p>
+            <p className="text-2xl font-bold text-emerald-900">${finalTotal.toFixed(2)}</p>
           </div>
           <button
             onClick={handleContinue}
             disabled={saving}
-            className="bg-teal-700 text-white font-bold px-8 py-3 rounded-md shadow-md hover:bg-teal-800 disabled:opacity-50"
+            className="bg-emerald-700 text-white font-bold px-8 py-3 rounded-md shadow-md hover:bg-emerald-800 disabled:opacity-50 transition-colors duration-150"
           >
             {saving ? 'Saving...' : 'Continue'}
           </button>

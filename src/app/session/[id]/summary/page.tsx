@@ -171,9 +171,7 @@ export default function SummaryPage({ params }: { params: Promise<{ id: string }
 
   // Realtime subscription for item_shares updates
   useEffect(() => {
-    if (!sessionId || items.length === 0) return;
-
-    const itemIds = items.map(i => i.id);
+    if (!sessionId) return;
 
     const sharesChannel = supabase
       .channel(`summary_shares_${sessionId}`)
@@ -188,7 +186,7 @@ export default function SummaryPage({ params }: { params: Promise<{ id: string }
             split_method: string;
           } | undefined;
 
-          if (!record || !itemIds.includes(record.item_id)) return;
+          if (!record) return;
 
           const mapped: ItemShare = {
             participantId: record.participant_id,
@@ -220,7 +218,7 @@ export default function SummaryPage({ params }: { params: Promise<{ id: string }
     return () => {
       supabase.removeChannel(sharesChannel);
     };
-  }, [sessionId, items, currentUserId]);
+  }, [sessionId, currentUserId]);
 
   // Realtime subscription for participant updates (submitted_at changes)
   useEffect(() => {
@@ -230,22 +228,42 @@ export default function SummaryPage({ params }: { params: Promise<{ id: string }
       .channel(`summary_participants_${sessionId}`)
       .on(
         'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'participants' },
+        { event: '*', schema: 'public', table: 'participants', filter: `session_id=eq.${sessionId}` },
         (payload) => {
-          const record = payload.new as {
-            id: string;
-            name: string;
-            tip_percent: number;
-            submitted_at: string | null;
-          };
-
-          setParticipants(prev =>
-            prev.map(p =>
-              p.id === record.id
-                ? { ...p, name: record.name, tipPercent: record.tip_percent ?? 0, submittedAt: record.submitted_at }
-                : p
-            )
-          );
+          if (payload.eventType === 'INSERT') {
+            const record = payload.new as {
+              id: string;
+              name: string;
+              tip_percent: number;
+              submitted_at: string | null;
+            };
+            setParticipants(prev => {
+              if (prev.some(p => p.id === record.id)) return prev;
+              return [...prev, {
+                id: record.id,
+                name: record.name,
+                tipPercent: record.tip_percent ?? 0,
+                submittedAt: record.submitted_at,
+              }];
+            });
+          } else if (payload.eventType === 'UPDATE') {
+            const record = payload.new as {
+              id: string;
+              name: string;
+              tip_percent: number;
+              submitted_at: string | null;
+            };
+            setParticipants(prev =>
+              prev.map(p =>
+                p.id === record.id
+                  ? { ...p, name: record.name, tipPercent: record.tip_percent ?? 0, submittedAt: record.submitted_at }
+                  : p
+              )
+            );
+          } else if (payload.eventType === 'DELETE') {
+            const record = payload.old as { id: string };
+            setParticipants(prev => prev.filter(p => p.id !== record.id));
+          }
         }
       )
       .subscribe();
@@ -298,24 +316,44 @@ export default function SummaryPage({ params }: { params: Promise<{ id: string }
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-teal-50 flex items-center justify-center">
-        <p className="text-teal-900 text-lg">Loading summary...</p>
+      <div className="min-h-screen bg-emerald-50 p-8">
+        <div className="max-w-2xl mx-auto">
+          <div className="h-9 w-48 bg-gray-200 rounded-lg animate-skeleton mb-2" />
+          <div className="h-5 w-32 bg-gray-200 rounded-full animate-skeleton mb-6" />
+          <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
+            <div className="flex justify-between">
+              <div className="space-y-2">
+                <div className="h-5 w-36 bg-gray-200 rounded animate-skeleton" />
+                <div className="h-12 w-32 bg-gray-200 rounded animate-skeleton" />
+              </div>
+              <div className="space-y-2">
+                <div className="h-4 w-24 bg-gray-200 rounded animate-skeleton" />
+                <div className="h-4 w-24 bg-gray-200 rounded animate-skeleton" />
+                <div className="h-4 w-24 bg-gray-200 rounded animate-skeleton" />
+              </div>
+            </div>
+          </div>
+          <div className="bg-white rounded-xl shadow-sm p-6">
+            <div className="h-5 w-28 bg-gray-200 rounded animate-skeleton mb-3" />
+            <div className="h-3 w-full bg-gray-200 rounded-full animate-skeleton" />
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-teal-50 p-8">
-      <div className="max-w-3xl mx-auto">
-        <h1 className="text-3xl font-bold text-teal-900 mb-2">Final Summary</h1>
-        <p className="text-gray-600 mb-6">Session ID: {sessionCode || id}</p>
+    <div className="min-h-screen bg-emerald-50 p-8">
+      <div className="max-w-2xl mx-auto">
+        <h1 className="text-3xl font-bold tracking-tight text-emerald-900 mb-2">Final Summary</h1>
+        <span className="inline-flex items-center px-3 py-0.5 bg-emerald-100 text-emerald-800 font-mono text-sm rounded-full mb-6">{sessionCode || id}</span>
 
         {/* Current user tile */}
-        <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+        <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-lg text-teal-900">{userName ? `${userName}'s` : 'Your'} share is</p>
-              <p className="text-5xl font-extrabold text-teal-700 mt-1">${finalTotal.toFixed(2)}</p>
+              <p className="text-lg text-emerald-900">{userName ? `${userName}'s` : 'Your'} share is</p>
+              <p className="text-5xl font-extrabold text-emerald-700 mt-1">${finalTotal.toFixed(2)}</p>
             </div>
 
             <div className="text-right text-gray-600 space-y-1">
@@ -331,7 +369,7 @@ export default function SummaryPage({ params }: { params: Promise<{ id: string }
                 <p>Tip ({tipPercent}%)</p>
                 <p>${tipAmount.toFixed(2)}</p>
               </div>
-              <div className="flex justify-between gap-8 border-t border-gray-300 pt-1 mt-1 font-semibold text-teal-900">
+              <div className="flex justify-between gap-8 border-t border-gray-300 pt-1 mt-1 font-semibold text-emerald-900">
                 <p>Total</p>
                 <p>${finalTotal.toFixed(2)}</p>
               </div>
@@ -340,16 +378,16 @@ export default function SummaryPage({ params }: { params: Promise<{ id: string }
         </div>
 
         {/* Bill Coverage */}
-        <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200 mt-6">
+        <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 p-6 mt-6">
           <div className="flex justify-between items-center mb-2">
-            <h2 className="font-bold text-lg text-teal-900">Bill Coverage</h2>
+            <h2 className="font-bold text-lg text-emerald-900">Bill Coverage</h2>
             <span className="text-sm text-gray-500">
               ${totalCoveredSubtotal.toFixed(2)} of ${billSubtotal.toFixed(2)}
             </span>
           </div>
           <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
             <div
-              className={`h-full rounded-full transition-all duration-300 ${coveragePercent >= 100 ? 'bg-green-500' : 'bg-teal-500'}`}
+              className={`h-full rounded-full transition-all duration-300 ${coveragePercent >= 100 ? 'bg-green-500' : 'bg-emerald-500'}`}
               style={{ width: `${coveragePercent}%` }}
             />
           </div>
@@ -362,13 +400,13 @@ export default function SummaryPage({ params }: { params: Promise<{ id: string }
         </div>
 
         {/* Group Summary Dropdown */}
-        <div className="bg-white rounded-lg shadow-md border border-gray-200 mt-6 overflow-hidden">
+        <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 mt-6 overflow-hidden">
           <button
             onClick={() => setGroupOpen(!groupOpen)}
-            className="w-full flex justify-between items-center p-6 text-left hover:bg-gray-50 transition-colors"
+            className="w-full flex justify-between items-center p-6 text-left hover:bg-gray-50 transition-colors duration-150"
           >
             <div>
-              <h2 className="font-bold text-lg text-teal-900">Group Summary</h2>
+              <h2 className="font-bold text-lg text-emerald-900">Group Summary</h2>
               <p className="text-sm text-gray-500">
                 {participants.filter(p => p.submittedAt).length} of {participants.length} submitted
               </p>
@@ -395,7 +433,7 @@ export default function SummaryPage({ params }: { params: Promise<{ id: string }
                   <div key={p.id} className="border-b border-gray-100 last:border-b-0">
                     <button
                       onClick={() => setExpandedParticipant(isExpanded ? null : p.id)}
-                      className="w-full flex items-center justify-between px-6 py-4 text-left hover:bg-gray-50 transition-colors"
+                      className="w-full flex items-center justify-between px-6 py-4 text-left hover:bg-gray-50 transition-colors duration-150"
                     >
                       <div className="flex items-center gap-3">
                         <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
@@ -407,7 +445,7 @@ export default function SummaryPage({ params }: { params: Promise<{ id: string }
                         </div>
                         <div>
                           <p className="font-semibold text-gray-800">
-                            {p.name}{isCurrentUser && <span className="text-teal-600 text-sm ml-1">(you)</span>}
+                            {p.name}{isCurrentUser && <span className="text-emerald-600 text-sm ml-1">(you)</span>}
                           </p>
                           <p className="text-xs text-gray-400">
                             {isSubmitted ? 'Submitted' : 'Pending'}

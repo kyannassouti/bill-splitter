@@ -7,13 +7,15 @@ interface ItemCardProps extends Item {
   currentShare?: ItemShare;
   othersClaimed: number; // 0–1 range: sum of other participants' proportions
   hasClaims: boolean; // true if any participant (including current user) has claimed this item
+  expanded: boolean;
+  onToggle: () => void;
   onShareUpdate: (itemId: string, proportion: number, splitMethod: 'qty' | 'percentage') => void;
   onItemUpdate?: (item: Item) => void;
   onItemDelete?: (itemId: string) => void;
 }
 
 
-export default function ItemCard({ id, name, price, qty, currentShare, othersClaimed, hasClaims, onShareUpdate, onItemUpdate, onItemDelete }: ItemCardProps) {
+export default function ItemCard({ id, name, price, qty, currentShare, othersClaimed, hasClaims, expanded, onToggle, onShareUpdate, onItemUpdate, onItemDelete }: ItemCardProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [editName, setEditName] = useState(name);
@@ -127,272 +129,295 @@ export default function ItemCard({ id, name, price, qty, currentShare, othersCla
     setIsEditing(false);
   };
 
-  return (
-    <div className="bg-white rounded-lg shadow-md p-4 border border-gray-200">
+  const totalPrice = price * qty;
 
-      <div className="flex justify-between items-start">
-        {isEditing ? (
-          <div className="flex-1 flex flex-col gap-2 mr-4">
-            <input
-              type="text"
-              value={editName}
-              onChange={(e) => setEditName(e.target.value)}
-              className="px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-teal-600 font-bold text-lg"
-              autoFocus
-            />
-            <div className="flex gap-2">
-              <input
-                type="number"
-                step="0.01"
-                min="0.01"
-                value={editPrice}
-                onChange={(e) => setEditPrice(e.target.value)}
-                className="w-24 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-teal-600 text-sm"
-                placeholder="Price"
-              />
-              <input
-                type="number"
-                min="1"
-                value={editQty}
-                onChange={(e) => setEditQty(e.target.value)}
-                className="w-16 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-teal-600 text-sm"
-                placeholder="Qty"
-              />
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={handleEditCancel}
-                className="text-sm px-3 py-1 rounded bg-gray-100 text-gray-700 hover:bg-gray-200"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleEditSave}
-                className="text-sm px-3 py-1 rounded bg-teal-700 text-white hover:bg-teal-800"
-              >
-                Save
-              </button>
-            </div>
+  return (
+    <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden">
+      {/* Collapsed header — always visible */}
+      <button
+        type="button"
+        onClick={onToggle}
+        className="w-full flex items-center justify-between p-4 text-left hover:bg-gray-50/50 transition-colors duration-150"
+      >
+        <div className="flex-1 min-w-0">
+          <p className="font-bold text-emerald-900 truncate">{name} <span className="font-normal text-gray-500">x{qty}</span></p>
+          <p className="text-sm text-gray-500">${price.toFixed(2)} each · ${totalPrice.toFixed(2)} total</p>
+        </div>
+        <div className="flex items-center gap-3 ml-4 shrink-0">
+          <div className="text-right">
+            <p className="font-bold text-emerald-600">${shareAmount.toFixed(2)}</p>
+            <p className="text-xs text-gray-400">Your share</p>
           </div>
-        ) : (
-          <div>
-            <h3 className="font-bold text-lg text-teal-900">{name} x {qty}</h3>
-            <p className="text-gray-600 text-sm">${price.toFixed(2)} each</p>
-            <p className="text-gray-600 text-sm">Total: ${(price * qty).toFixed(2)}</p>
-          </div>
-        )}
-        <div className="flex flex-col items-end gap-1">
-          <h1 className="font-bold text-teal-600">${shareAmount.toFixed(2)}</h1>
-          <p className="text-gray-600 text-sm">Your share</p>
-          {!isEditing && (onItemUpdate || onItemDelete) && (
-            <div className="flex gap-2 mt-1">
-              {onItemUpdate && (
-                <button
-                  onClick={() => setIsEditing(true)}
-                  className="text-xs px-2 py-1 rounded bg-teal-50 text-teal-700 hover:bg-teal-100"
-                >
-                  Edit
-                </button>
-              )}
-              {onItemDelete && !confirmingDelete && (
-                <button
-                  onClick={() => setConfirmingDelete(true)}
-                  disabled={hasClaims}
-                  title={hasClaims ? 'Cannot delete — this item has been claimed by participants' : undefined}
-                  className="text-xs px-2 py-1 rounded bg-red-50 text-red-600 hover:bg-red-100 disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  Delete
-                </button>
-              )}
-              {onItemDelete && confirmingDelete && (
-                <div className="flex gap-1">
-                  <button
-                    onClick={() => setConfirmingDelete(false)}
-                    className="text-xs px-2 py-1 rounded bg-gray-100 text-gray-700 hover:bg-gray-200"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={() => onItemDelete(id)}
-                    className="text-xs px-2 py-1 rounded bg-red-600 text-white hover:bg-red-700"
-                  >
-                    Confirm
-                  </button>
+          <svg
+            className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}
+            fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+      </button>
+
+      {/* Expanded content */}
+      {expanded && (
+        <div className="px-4 pb-4 border-t border-gray-100">
+          {/* Edit / Delete actions */}
+          {(onItemUpdate || onItemDelete) && (
+            <div className="pt-3 mb-3">
+              {isEditing ? (
+                <div className="flex flex-col gap-2">
+                  <input
+                    type="text"
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    className="px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-emerald-600 font-bold text-lg"
+                    autoFocus
+                  />
+                  <div className="flex gap-2">
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0.01"
+                      value={editPrice}
+                      onChange={(e) => setEditPrice(e.target.value)}
+                      className="w-24 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-emerald-600 text-sm"
+                      placeholder="Price"
+                    />
+                    <input
+                      type="number"
+                      min="1"
+                      value={editQty}
+                      onChange={(e) => setEditQty(e.target.value)}
+                      className="w-16 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-emerald-600 text-sm"
+                      placeholder="Qty"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleEditCancel}
+                      className="text-sm px-3 py-1 rounded bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors duration-150"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleEditSave}
+                      className="text-sm px-3 py-1 rounded bg-emerald-700 text-white hover:bg-emerald-800 transition-colors duration-150"
+                    >
+                      Save
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  {onItemUpdate && (
+                    <button
+                      onClick={() => setIsEditing(true)}
+                      className="text-xs px-2 py-1 rounded bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors duration-150"
+                    >
+                      Edit
+                    </button>
+                  )}
+                  {onItemDelete && !confirmingDelete && (
+                    <button
+                      onClick={() => setConfirmingDelete(true)}
+                      disabled={hasClaims}
+                      title={hasClaims ? 'Item claimed by a participant' : undefined}
+                      className="text-xs px-2 py-1 rounded bg-red-50 text-red-600 hover:bg-red-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors duration-150"
+                    >
+                      Delete
+                    </button>
+                  )}
+                  {onItemDelete && confirmingDelete && (
+                    <div className="flex gap-1">
+                      <button
+                        onClick={() => setConfirmingDelete(false)}
+                        className="text-xs px-2 py-1 rounded bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors duration-150"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={() => onItemDelete(id)}
+                        className="text-xs px-2 py-1 rounded bg-red-600 text-white hover:bg-red-700 transition-colors duration-150"
+                      >
+                        Confirm
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
           )}
-        </div>
-      </div>
 
-      <div className="flex justify-center gap-4 mt-3">
-        <button
-          onClick={() => handleSplitMethodChange('qty')}
-          className={`flex-1 font-bold px-6 py-2 rounded-md shadow-md ${splitMethod === 'qty'
-              ? 'bg-teal-700 text-white hover:bg-teal-800'
-              : 'bg-teal-100 text-teal-900 hover:bg-teal-200'
-            }`}
-        >
-          By Quantity
-        </button>
-        <button
-          onClick={() => handleSplitMethodChange('percentage')}
-          className={`flex-1 font-bold px-6 py-2 rounded-md shadow-md ${splitMethod === 'percentage'
-              ? 'bg-teal-700 text-white hover:bg-teal-800'
-              : 'bg-teal-100 text-teal-900 hover:bg-teal-200'
-            }`}
-        >
-          By Proportion
-        </button>
-      </div>
-
-      {splitMethod === 'qty' && (
-        <div className='flex flex-col items-center gap-2 mt-4'>
-          <div className='flex justify-center items-center gap-3'>
+          {/* Split method toggle */}
+          <div className="flex justify-center gap-4">
             <button
-              onClick={() => handleQuantityChange(Math.max(0, selectedQty - 1))}
-              disabled={selectedQty <= 0}
-              className='font-bold px-4 py-2 rounded-md shadow-md bg-white text-teal-900 hover:bg-teal-50 disabled:opacity-40 disabled:cursor-not-allowed'
-            >
-              -
-            </button>
-            <input
-              type="number"
-              min="0"
-              max={maxQty}
-              value={selectedQty}
-              onChange={(e) => {
-                const value = e.target.value === '' ? 0 : Number(e.target.value);
-                if (value >= 0 && value <= maxQty) {
-                  handleQuantityChange(value);
-                }
-              }}
-              onFocus={(e) => e.target.select()}
-              className='w-20 px-3 py-2 border border-gray-300 rounded-lg text-center focus:outline-none focus:ring-2 focus:ring-teal-600'
-            />
-            <button
-              onClick={() => handleQuantityChange(Math.min(maxQty, selectedQty + 1))}
-              disabled={selectedQty >= maxQty}
-              className='font-bold px-4 py-2 rounded-md shadow-md bg-white text-teal-900 hover:bg-teal-50 disabled:opacity-40 disabled:cursor-not-allowed'
-            >
-              +
-            </button>
-          </div>
-          {maxQty < qty && (
-            <p className="text-xs text-gray-400">Max {maxQty} of {qty} available</p>
-          )}
-        </div>
-      )}
-
-      {splitMethod === 'percentage' && (
-        <div className='flex flex-col items-center gap-3 mt-4'>
-          <div className='flex flex-wrap justify-center items-center gap-3'>
-            {[25, 33, 50, 100].map((p) => (
-              <button
-                key={p}
-                onClick={() => { setCustomPercent(false); handlePercentageSelect(p); }}
-                disabled={p > remainingPercent}
-                className={`font-bold px-4 py-2 rounded-md shadow-md bg-white text-teal-900 hover:bg-teal-50 disabled:opacity-40 disabled:cursor-not-allowed ${!customPercent && splitPercent === p ? 'outline-none ring-2 ring-teal-600 bg-teal-50' : ''
-                  }`}
-              >
-                {p}%
-              </button>
-            ))}
-            <button
-              onClick={() => { setCustomPercent(true); setCustomInput(''); setSplitPercent(undefined); onShareUpdate(id, 0, 'percentage'); }}
-              className={`font-bold px-4 py-2 rounded-md shadow-md bg-white text-teal-900 hover:bg-teal-50 ${customPercent ? 'outline-none ring-2 ring-teal-600 bg-teal-50' : ''
+              onClick={() => handleSplitMethodChange('qty')}
+              className={`flex-1 font-bold px-6 py-2 rounded-md shadow-md transition-colors duration-150 ${splitMethod === 'qty'
+                  ? 'bg-emerald-700 text-white hover:bg-emerald-800'
+                  : 'bg-emerald-100 text-emerald-900 hover:bg-emerald-200'
                 }`}
             >
-              Custom
+              By Quantity
+            </button>
+            <button
+              onClick={() => handleSplitMethodChange('percentage')}
+              className={`flex-1 font-bold px-6 py-2 rounded-md shadow-md transition-colors duration-150 ${splitMethod === 'percentage'
+                  ? 'bg-emerald-700 text-white hover:bg-emerald-800'
+                  : 'bg-emerald-100 text-emerald-900 hover:bg-emerald-200'
+                }`}
+            >
+              By Proportion
             </button>
           </div>
-          {customPercent && (
-            <div className='flex flex-col items-center gap-2'>
-              <div className='flex items-center gap-2'>
+
+          {splitMethod === 'qty' && (
+            <div className='flex flex-col items-center gap-2 mt-4'>
+              <div className='flex justify-center items-center gap-3'>
+                <button
+                  onClick={() => handleQuantityChange(Math.max(0, selectedQty - 1))}
+                  disabled={selectedQty <= 0}
+                  className='font-bold px-4 py-2 rounded-md shadow-md bg-white text-emerald-900 hover:bg-emerald-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors duration-150'
+                >
+                  -
+                </button>
                 <input
-                  type="text"
-                  value={customInput}
+                  type="number"
+                  min="0"
+                  max={maxQty}
+                  value={selectedQty}
                   onChange={(e) => {
-                    const raw = e.target.value;
-                    setCustomInput(raw);
-
-                    // Parse fraction (e.g. "1/3") or plain number (e.g. "25")
-                    let percent: number | undefined;
-                    const fractionMatch = raw.match(/^\s*(\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)\s*$/);
-                    if (fractionMatch) {
-                      const numerator = parseFloat(fractionMatch[1]);
-                      const denominator = parseFloat(fractionMatch[2]);
-                      if (denominator > 0) {
-                        percent = Math.round((numerator / denominator) * 100);
-                      }
-                    } else {
-                      const num = parseFloat(raw);
-                      if (!isNaN(num)) {
-                        percent = Math.round(num);
-                      }
-                    }
-
-                    if (percent !== undefined && percent >= 0 && percent <= remainingPercent) {
-                      handlePercentageSelect(percent);
-                    } else if (raw === '') {
-                      handlePercentageSelect(0);
+                    const value = e.target.value === '' ? 0 : Number(e.target.value);
+                    if (value >= 0 && value <= maxQty) {
+                      handleQuantityChange(value);
                     }
                   }}
                   onFocus={(e) => e.target.select()}
-                  placeholder="e.g. 1/3 or 25"
-                  className='w-28 px-3 py-2 border border-gray-300 rounded-lg text-center focus:outline-none focus:ring-2 focus:ring-teal-600'
+                  className='w-20 px-3 py-2 border border-gray-300 rounded-lg text-center focus:outline-none focus:ring-2 focus:ring-emerald-600'
                 />
-                <span className='text-sm text-gray-500'>= {splitPercent ?? 0}%</span>
                 <button
-                  onClick={() => {
-                    const remaining = Math.max(0, 1 - othersClaimed);
-                    const rPercent = Math.round(remaining * 100);
-                    setCustomInput(String(rPercent));
-                    handlePercentageSelect(rPercent);
-                  }}
-                  disabled={Math.max(0, 1 - othersClaimed) === 0}
-                  className="font-bold px-3 py-2 rounded-md shadow-md bg-amber-100 text-amber-900 hover:bg-amber-200 disabled:opacity-40 disabled:cursor-not-allowed text-sm"
+                  onClick={() => handleQuantityChange(Math.min(maxQty, selectedQty + 1))}
+                  disabled={selectedQty >= maxQty}
+                  className='font-bold px-4 py-2 rounded-md shadow-md bg-white text-emerald-900 hover:bg-emerald-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors duration-150'
                 >
-                  Rest
+                  +
                 </button>
               </div>
-              <p className='text-xs text-gray-400'>
-                Enter a fraction (1/4) or percentage (25)
-                {remainingPercent < 100 && <span> · max {remainingPercent}%</span>}
-              </p>
+              {maxQty < qty && (
+                <p className="text-xs text-gray-400">Max {maxQty} of {qty} available</p>
+              )}
             </div>
           )}
+
+          {splitMethod === 'percentage' && (
+            <div className='flex flex-col items-center gap-3 mt-4'>
+              <div className='flex flex-wrap justify-center items-center gap-3'>
+                {[25, 33, 50, 100].map((p) => (
+                  <button
+                    key={p}
+                    onClick={() => { setCustomPercent(false); handlePercentageSelect(p); }}
+                    disabled={p > remainingPercent}
+                    className={`font-bold px-4 py-2 rounded-md shadow-md bg-white text-emerald-900 hover:bg-emerald-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors duration-150 ${!customPercent && splitPercent === p ? 'outline-none ring-2 ring-emerald-600 bg-emerald-50' : ''
+                      }`}
+                  >
+                    {p}%
+                  </button>
+                ))}
+                <button
+                  onClick={() => { setCustomPercent(true); setCustomInput(''); setSplitPercent(undefined); onShareUpdate(id, 0, 'percentage'); }}
+                  className={`font-bold px-4 py-2 rounded-md shadow-md bg-white text-emerald-900 hover:bg-emerald-50 transition-colors duration-150 ${customPercent ? 'outline-none ring-2 ring-emerald-600 bg-emerald-50' : ''
+                    }`}
+                >
+                  Custom
+                </button>
+              </div>
+              {customPercent && (
+                <div className='flex flex-col items-center gap-2'>
+                  <div className='flex items-center gap-2'>
+                    <input
+                      type="text"
+                      value={customInput}
+                      onChange={(e) => {
+                        const raw = e.target.value;
+                        setCustomInput(raw);
+
+                        // Parse fraction (e.g. "1/3") or plain number (e.g. "25")
+                        let percent: number | undefined;
+                        const fractionMatch = raw.match(/^\s*(\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)\s*$/);
+                        if (fractionMatch) {
+                          const numerator = parseFloat(fractionMatch[1]);
+                          const denominator = parseFloat(fractionMatch[2]);
+                          if (denominator > 0) {
+                            percent = Math.round((numerator / denominator) * 100);
+                          }
+                        } else {
+                          const num = parseFloat(raw);
+                          if (!isNaN(num)) {
+                            percent = Math.round(num);
+                          }
+                        }
+
+                        if (percent !== undefined && percent >= 0 && percent <= remainingPercent) {
+                          handlePercentageSelect(percent);
+                        } else if (raw === '') {
+                          handlePercentageSelect(0);
+                        }
+                      }}
+                      onFocus={(e) => e.target.select()}
+                      placeholder="e.g. 1/3 or 25"
+                      className='w-28 px-3 py-2 border border-gray-300 rounded-lg text-center focus:outline-none focus:ring-2 focus:ring-emerald-600'
+                    />
+                    <span className='text-sm text-gray-500'>= {splitPercent ?? 0}%</span>
+                    <button
+                      onClick={() => {
+                        const remaining = Math.max(0, 1 - othersClaimed);
+                        const rPercent = Math.round(remaining * 100);
+                        setCustomInput(String(rPercent));
+                        handlePercentageSelect(rPercent);
+                      }}
+                      disabled={Math.max(0, 1 - othersClaimed) === 0}
+                      className="font-bold px-3 py-2 rounded-md shadow-md bg-amber-100 text-amber-900 hover:bg-amber-200 disabled:opacity-40 disabled:cursor-not-allowed text-sm transition-colors duration-150"
+                    >
+                      Rest
+                    </button>
+                  </div>
+                  <p className='text-xs text-gray-400'>
+                    Enter a fraction (1/4) or percentage (25)
+                    {remainingPercent < 100 && <span> · max {remainingPercent}%</span>}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Progress bar showing total claim status */}
+          {(() => {
+            const othersPercent = Math.min(othersClaimed * 100, 100);
+            const youPercent = Math.min(currentProportion * 100, 100 - othersPercent);
+            const totalPercent = Math.round(othersPercent + youPercent);
+            return (
+              <div className="mt-4">
+                <div className="flex justify-between text-xs text-gray-500 mb-1">
+                  <span>{totalPercent}% claimed</span>
+                  {othersPercent > 0 && <span>{Math.round(othersPercent)}% others &middot; {Math.round(youPercent)}% you</span>}
+                </div>
+                <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden flex">
+                  {othersPercent > 0 && (
+                    <div
+                      className="h-full bg-gray-400 transition-all duration-300"
+                      style={{ width: `${othersPercent}%` }}
+                    />
+                  )}
+                  {youPercent > 0 && (
+                    <div
+                      className="h-full bg-emerald-500 transition-all duration-300"
+                      style={{ width: `${youPercent}%` }}
+                    />
+                  )}
+                </div>
+              </div>
+            );
+          })()}
         </div>
       )}
-
-      {/* Progress bar showing total claim status */}
-      {(() => {
-        const othersPercent = Math.min(othersClaimed * 100, 100);
-        const youPercent = Math.min(currentProportion * 100, 100 - othersPercent);
-        const totalPercent = Math.round(othersPercent + youPercent);
-        return (
-          <div className="mt-4">
-            <div className="flex justify-between text-xs text-gray-500 mb-1">
-              <span>{totalPercent}% claimed</span>
-              {othersPercent > 0 && <span>{Math.round(othersPercent)}% others &middot; {Math.round(youPercent)}% you</span>}
-            </div>
-            <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden flex">
-              {othersPercent > 0 && (
-                <div
-                  className="h-full bg-gray-400 transition-all duration-300"
-                  style={{ width: `${othersPercent}%` }}
-                />
-              )}
-              {youPercent > 0 && (
-                <div
-                  className="h-full bg-teal-500 transition-all duration-300"
-                  style={{ width: `${youPercent}%` }}
-                />
-              )}
-            </div>
-          </div>
-        );
-      })()}
     </div>
   );
 }

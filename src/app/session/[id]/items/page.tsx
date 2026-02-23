@@ -22,6 +22,7 @@ export default function ItemsPage({ params }: { params: Promise<{ id: string }> 
   const [splitCount, setSplitCount] = useState(1);
   const [showSplitModal, setShowSplitModal] = useState(false);
   const [evenSplitApplied, setEvenSplitApplied] = useState(false);
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
 
   const currentUserId = typeof window !== 'undefined' ? localStorage.getItem('participantId') : null;
 
@@ -352,24 +353,45 @@ export default function ItemsPage({ params }: { params: Promise<{ id: string }> 
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-teal-50 flex items-center justify-center">
-        <p className="text-teal-900 text-lg">Loading items...</p>
+      <div className="min-h-screen bg-emerald-50 p-8 pb-24">
+        <div className="max-w-2xl mx-auto">
+          <div className="h-9 w-56 bg-gray-200 rounded-lg animate-skeleton mb-2" />
+          <div className="h-5 w-32 bg-gray-200 rounded-full animate-skeleton mb-6" />
+          <div className="flex flex-col gap-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="bg-white rounded-xl shadow-sm p-4">
+                <div className="flex justify-between">
+                  <div className="space-y-2">
+                    <div className="h-5 w-32 bg-gray-200 rounded animate-skeleton" />
+                    <div className="h-4 w-20 bg-gray-200 rounded animate-skeleton" />
+                  </div>
+                  <div className="h-6 w-16 bg-gray-200 rounded animate-skeleton" />
+                </div>
+                <div className="flex gap-4 mt-3">
+                  <div className="flex-1 h-10 bg-gray-200 rounded-md animate-skeleton" />
+                  <div className="flex-1 h-10 bg-gray-200 rounded-md animate-skeleton" />
+                </div>
+                <div className="h-2 w-full bg-gray-200 rounded-full mt-4 animate-skeleton" />
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-teal-50 p-8 pb-24">
-      <div className="max-w-3xl mx-auto">
+    <div className="min-h-screen bg-emerald-50 p-8 pb-24">
+      <div className="max-w-2xl mx-auto">
         <div className="flex justify-between items-start mb-2">
           <div>
-            <h1 className="text-3xl font-bold text-teal-900">Select Your Items</h1>
-            <p className="text-gray-600 mt-1">Session ID: {id}</p>
+            <h1 className="text-3xl font-bold tracking-tight text-emerald-900">Select Your Items</h1>
+            <span className="inline-flex items-center mt-1 px-3 py-0.5 bg-emerald-100 text-emerald-800 font-mono text-sm rounded-full">{id}</span>
           </div>
           {items.length > 0 && (
             <button
               onClick={() => setShowSplitModal(true)}
-              className="font-bold px-4 py-2 rounded-md shadow-md bg-white text-teal-700 border-2 border-teal-700 hover:bg-teal-50"
+              className="font-bold px-4 py-2 rounded-md shadow-md bg-white text-emerald-700 border-2 border-emerald-700 hover:bg-emerald-50 transition-colors duration-150"
             >
               Split Evenly
             </button>
@@ -378,7 +400,13 @@ export default function ItemsPage({ params }: { params: Promise<{ id: string }> 
 
         <div className="flex flex-col gap-4 mt-4">
           {items.length === 0 ? (
-            <p className="text-gray-500 text-center py-8">No items yet. Add one to get started!</p>
+            <div className="text-center py-12">
+              <svg className="mx-auto h-12 w-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
+              </svg>
+              <p className="mt-3 text-gray-500 font-medium">No items yet</p>
+              <p className="text-gray-400 text-sm">Add one to get started!</p>
+            </div>
           ) : (
             items.map((item) => (
               <ItemCard
@@ -389,6 +417,13 @@ export default function ItemsPage({ params }: { params: Promise<{ id: string }> 
                 )}
                 othersClaimed={othersClaimed[item.id] ?? 0}
                 hasClaims={itemHasClaims(item.id)}
+                expanded={expandedItems.has(item.id)}
+                onToggle={() => setExpandedItems(prev => {
+                  const next = new Set(prev);
+                  if (next.has(item.id)) next.delete(item.id);
+                  else next.add(item.id);
+                  return next;
+                })}
                 onShareUpdate={handleShareUpdate}
                 onItemUpdate={handleItemUpdate}
                 onItemDelete={handleItemDelete}
@@ -399,7 +434,7 @@ export default function ItemsPage({ params }: { params: Promise<{ id: string }> 
 
         <button
           onClick={() => setShowAddModal(true)}
-          className="mt-6 w-full font-bold px-6 py-3 rounded-md shadow-md bg-teal-700 text-white hover:bg-teal-800"
+          className="mt-6 w-full font-bold px-6 py-3 rounded-md shadow-md bg-emerald-700 text-white hover:bg-emerald-800 transition-colors duration-150"
         >
           + Add Item
         </button>
@@ -413,9 +448,9 @@ export default function ItemsPage({ params }: { params: Promise<{ id: string }> 
       )}
 
       {showSplitModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-sm">
-            <h2 className="font-bold text-xl text-teal-900 mb-2">Split Evenly</h2>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-fade-in">
+          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-sm animate-scale-in">
+            <h2 className="font-bold text-xl text-emerald-900 mb-2">Split Evenly</h2>
             <p className="text-sm text-gray-500 mb-6">Set your share on every item to 1/N</p>
 
             <div className="flex flex-col items-center gap-4">
@@ -424,7 +459,7 @@ export default function ItemsPage({ params }: { params: Promise<{ id: string }> 
                 <button
                   onClick={() => setSplitCount(Math.max(participantCount, splitCount - 1))}
                   disabled={splitCount <= participantCount}
-                  className="font-bold px-3 py-1 rounded-md bg-gray-100 text-teal-900 hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="font-bold px-3 py-1 rounded-md bg-gray-100 text-emerald-900 hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors duration-150"
                 >
                   -
                 </button>
@@ -437,29 +472,29 @@ export default function ItemsPage({ params }: { params: Promise<{ id: string }> 
                     if (val >= participantCount) setSplitCount(val);
                   }}
                   onFocus={(e) => e.target.select()}
-                  className="w-14 px-2 py-1 border border-gray-300 rounded-md text-center focus:outline-none focus:ring-2 focus:ring-teal-600"
+                  className="w-14 px-2 py-1 border border-gray-300 rounded-md text-center focus:outline-none focus:ring-2 focus:ring-emerald-600"
                 />
                 <button
                   onClick={() => setSplitCount(splitCount + 1)}
-                  className="font-bold px-3 py-1 rounded-md bg-gray-100 text-teal-900 hover:bg-gray-200"
+                  className="font-bold px-3 py-1 rounded-md bg-gray-100 text-emerald-900 hover:bg-gray-200 transition-colors duration-150"
                 >
                   +
                 </button>
                 <span className="text-sm text-gray-600">people</span>
               </div>
-              <p className="text-teal-700 font-semibold">{Math.round((1 / splitCount) * 100)}% each</p>
+              <p className="text-emerald-700 font-semibold">{Math.round((1 / splitCount) * 100)}% each</p>
             </div>
 
             <div className="flex gap-3 mt-6">
               <button
                 onClick={() => setShowSplitModal(false)}
-                className="flex-1 font-bold px-4 py-2 rounded-md bg-gray-100 text-gray-600 hover:bg-gray-200"
+                className="flex-1 font-bold px-4 py-2 rounded-md bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors duration-150"
               >
                 Cancel
               </button>
               <button
                 onClick={handleEvenSplit}
-                className="flex-1 font-bold px-4 py-2 rounded-md shadow-md bg-teal-700 text-white hover:bg-teal-800"
+                className="flex-1 font-bold px-4 py-2 rounded-md shadow-md bg-emerald-700 text-white hover:bg-emerald-800 transition-colors duration-150"
               >
                 Apply
               </button>
@@ -468,17 +503,17 @@ export default function ItemsPage({ params }: { params: Promise<{ id: string }> 
         </div>
       )}
 
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t-2 border-teal-600 shadow-lg p-4">
-        <div className="max-w-4xl mx-auto flex justify-between items-center">
+      <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] p-4">
+        <div className="max-w-2xl mx-auto flex justify-between items-center">
           <div>
             <p className="text-sm text-gray-600">Your Subtotal</p>
-            <p className="text-2xl font-bold text-teal-900">${subtotal.toFixed(2)}</p>
+            <p className="text-2xl font-bold text-emerald-900">${subtotal.toFixed(2)}</p>
           </div>
           <button
             onClick={handleContinue}
             disabled={saving || !hasSelections}
             title={!hasSelections ? 'Select at least one item before continuing' : undefined}
-            className="bg-teal-700 text-white font-bold px-8 py-3 rounded-md shadow-md hover:bg-teal-800 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="bg-emerald-700 text-white font-bold px-8 py-3 rounded-md shadow-md hover:bg-emerald-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150"
           >
             {saving ? 'Saving...' : 'Continue'}
           </button>
