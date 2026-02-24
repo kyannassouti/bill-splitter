@@ -21,7 +21,7 @@ export default function ItemsPage({ params }: { params: Promise<{ id: string }> 
   const [participantCount, setParticipantCount] = useState(1);
   const [splitCount, setSplitCount] = useState(1);
   const [showSplitModal, setShowSplitModal] = useState(false);
-  const [evenSplitApplied, setEvenSplitApplied] = useState(false);
+  const [evenSplitVersion, setEvenSplitVersion] = useState(0);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
 
   const currentUserId = typeof window !== 'undefined' ? localStorage.getItem('participantId') : null;
@@ -295,7 +295,7 @@ export default function ItemsPage({ params }: { params: Promise<{ id: string }> 
       splitMethod: 'percentage' as const,
     }));
     setShares(newShares);
-    setEvenSplitApplied(true);
+    setEvenSplitVersion(v => v + 1);
     setShowSplitModal(false);
   };
 
@@ -410,7 +410,7 @@ export default function ItemsPage({ params }: { params: Promise<{ id: string }> 
           ) : (
             items.map((item) => (
               <ItemCard
-                key={`${item.id}-${evenSplitApplied}`}
+                key={`${item.id}-${evenSplitVersion}`}
                 {...item}
                 currentShare={shares.find(
                   s => s.itemId === item.id && s.participantId === currentUserId

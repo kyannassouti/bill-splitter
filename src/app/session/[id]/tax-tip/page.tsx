@@ -212,7 +212,7 @@ export default function TaxTipPage({ params }: { params: Promise<{ id: string }>
         <h1 className="font-bold text-xl text-emerald-900 mb-3">Tip</h1>
 
         <div className="flex flex-col items-center gap-3 mt-4">
-          <div className="flex justify-center items-center gap-3">
+          <div className="flex flex-wrap justify-center items-center gap-3">
             {[15, 18, 20, 25].map((p) => (
               <button
                 key={p}

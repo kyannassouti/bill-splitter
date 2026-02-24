@@ -37,9 +37,9 @@ export default function ItemCard({ id, name, price, qty, currentShare, othersCla
     }
 
     // Percentage split - find matching preset or mark as custom
-    const percentValue = Math.round(proportion * 100);
+    const percentValue = proportion * 100;
     const presets = [25, 33, 50, 100];
-    const isPreset = presets.includes(percentValue);
+    const isPreset = presets.includes(Math.round(percentValue));
     return { method: 'percentage' as const, qty: 0, percent: percentValue, customPercent: !isPreset };
   };
 
@@ -52,7 +52,7 @@ export default function ItemCard({ id, name, price, qty, currentShare, othersCla
 
   // Remaining capacity after others' claims
   const remainingProportion = Math.max(0, 1 - othersClaimed);
-  const remainingPercent = Math.round(remainingProportion * 100);
+  const remainingPercent = remainingProportion * 100;
   const maxQty = Math.floor(qty * remainingProportion);
 
   // Auto-clamp current selection when othersClaimed increases via realtime
@@ -129,6 +129,9 @@ export default function ItemCard({ id, name, price, qty, currentShare, othersCla
     setIsEditing(false);
   };
 
+  // Floor to cents so per-person shares never overshoot the item total
+  const floorCents = (n: number) => Math.floor(n * 100) / 100;
+
   const totalPrice = price * qty;
 
   return (
@@ -145,7 +148,7 @@ export default function ItemCard({ id, name, price, qty, currentShare, othersCla
         </div>
         <div className="flex items-center gap-3 ml-4 shrink-0">
           <div className="text-right">
-            <p className="font-bold text-emerald-600">${shareAmount.toFixed(2)}</p>
+            <p className="font-bold text-emerald-600">${floorCents(shareAmount).toFixed(2)}</p>
             <p className="text-xs text-gray-400">Your share</p>
           </div>
           <svg
@@ -310,12 +313,17 @@ export default function ItemCard({ id, name, price, qty, currentShare, othersCla
           {splitMethod === 'percentage' && (
             <div className='flex flex-col items-center gap-3 mt-4'>
               <div className='flex flex-wrap justify-center items-center gap-3'>
-                {[25, 33, 50, 100].map((p) => (
+                {([
+                  { label: 25, value: 25 },
+                  { label: 33, value: 100 / 3 },
+                  { label: 50, value: 50 },
+                  { label: 100, value: 100 },
+                ]).map(({ label: p, value }) => (
                   <button
                     key={p}
-                    onClick={() => { setCustomPercent(false); handlePercentageSelect(p); }}
+                    onClick={() => { setCustomPercent(false); handlePercentageSelect(value); }}
                     disabled={p > remainingPercent}
-                    className={`font-bold px-4 py-2 rounded-md shadow-md bg-white text-emerald-900 hover:bg-emerald-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors duration-150 ${!customPercent && splitPercent === p ? 'outline-none ring-2 ring-emerald-600 bg-emerald-50' : ''
+                    className={`font-bold px-4 py-2 rounded-md shadow-md bg-white text-emerald-900 hover:bg-emerald-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors duration-150 ${!customPercent && splitPercent !== undefined && Math.round(splitPercent) === p ? 'outline-none ring-2 ring-emerald-600 bg-emerald-50' : ''
                       }`}
                   >
                     {p}%
@@ -346,12 +354,12 @@ export default function ItemCard({ id, name, price, qty, currentShare, othersCla
                           const numerator = parseFloat(fractionMatch[1]);
                           const denominator = parseFloat(fractionMatch[2]);
                           if (denominator > 0) {
-                            percent = Math.round((numerator / denominator) * 100);
+                            percent = (numerator / denominator) * 100;
                           }
                         } else {
                           const num = parseFloat(raw);
                           if (!isNaN(num)) {
-                            percent = Math.round(num);
+                            percent = num;
                           }
                         }
 
@@ -365,12 +373,12 @@ export default function ItemCard({ id, name, price, qty, currentShare, othersCla
                       placeholder="e.g. 1/3 or 25"
                       className='w-28 px-3 py-2 border border-gray-300 rounded-lg text-center focus:outline-none focus:ring-2 focus:ring-emerald-600'
                     />
-                    <span className='text-sm text-gray-500'>= {splitPercent ?? 0}%</span>
+                    <span className='text-sm text-gray-500'>= {Math.round(splitPercent ?? 0)}%</span>
                     <button
                       onClick={() => {
                         const remaining = Math.max(0, 1 - othersClaimed);
-                        const rPercent = Math.round(remaining * 100);
-                        setCustomInput(String(rPercent));
+                        const rPercent = remaining * 100;
+                        setCustomInput(String(Math.round(rPercent)));
                         handlePercentageSelect(rPercent);
                       }}
                       disabled={Math.max(0, 1 - othersClaimed) === 0}
@@ -381,7 +389,7 @@ export default function ItemCard({ id, name, price, qty, currentShare, othersCla
                   </div>
                   <p className='text-xs text-gray-400'>
                     Enter a fraction (1/4) or percentage (25)
-                    {remainingPercent < 100 && <span> · max {remainingPercent}%</span>}
+                    {remainingPercent < 100 && <span> · max {Math.round(remainingPercent)}%</span>}
                   </p>
                 </div>
               )}
