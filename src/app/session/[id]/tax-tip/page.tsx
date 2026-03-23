@@ -3,14 +3,17 @@ import { Item, ItemShare } from "@/types/types";
 import { supabase } from "@/lib/supabase";
 import { use, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import ParticipantsBadge from '@/components/ui/ParticipantsBadge';
 
 
 export default function TaxTipPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
 
-  const currentUserId = typeof window !== 'undefined' ? localStorage.getItem('participantId') : null;
+  const currentUserId = typeof window !== 'undefined' ? sessionStorage.getItem('participantId') : null;
 
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [participantNames, setParticipantNames] = useState<{ id: string; name: string }[]>([]);
   const [items, setItems] = useState<Item[]>([]);
   const [shares, setShares] = useState<ItemShare[]>([]);
   const [taxPercent, setTaxPercent] = useState(0.13);
@@ -39,7 +42,19 @@ export default function TaxTipPage({ params }: { params: Promise<{ id: string }>
         return;
       }
 
+      setSessionId(session.id);
       setTaxPercent(Number(session.tax_percent));
+
+      // Fetch participants
+      const { data: pData } = await supabase
+        .from('participants')
+        .select('id, name')
+        .eq('session_id', session.id)
+        .order('created_at', { ascending: true });
+
+      if (pData) {
+        setParticipantNames(pData);
+      }
 
       // Fetch items for this session
       const { data: itemsData, error: itemsError } = await supabase
@@ -87,6 +102,45 @@ export default function TaxTipPage({ params }: { params: Promise<{ id: string }>
     fetchData();
   }, [id, currentUserId]);
 
+  // Realtime subscription for participants (joins/leaves)
+  useEffect(() => {
+    if (!sessionId) return;
+
+    const channel = supabase
+      .channel(`participants_taxtip_${sessionId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'participants' },
+        (payload) => {
+          const record = (payload.new ?? payload.old) as {
+            id: string;
+            name: string;
+            session_id: string;
+          } | undefined;
+
+          if (!record || record.session_id !== sessionId) return;
+
+          if (payload.eventType === 'INSERT') {
+            setParticipantNames(prev => {
+              if (prev.some(p => p.id === record.id)) return prev;
+              return [...prev, { id: record.id, name: record.name }];
+            });
+          } else if (payload.eventType === 'DELETE') {
+            setParticipantNames(prev => prev.filter(p => p.id !== record.id));
+          } else if (payload.eventType === 'UPDATE') {
+            setParticipantNames(prev =>
+              prev.map(p => p.id === record.id ? { ...p, name: record.name } : p)
+            );
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [sessionId]);
+
   const userSelectedShares = shares.filter(
     share => share.participantId === currentUserId && share.proportion > 0
   );
@@ -132,7 +186,7 @@ export default function TaxTipPage({ params }: { params: Promise<{ id: string }>
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-emerald-50 p-8 pb-24">
+      <div className="min-h-screen bg-gray-50 p-8 pb-24">
         <div className="max-w-2xl mx-auto">
           <div className="h-9 w-40 bg-gray-200 rounded-lg animate-skeleton mb-2" />
           <div className="h-5 w-32 bg-gray-200 rounded-full animate-skeleton mb-6" />
@@ -151,14 +205,17 @@ export default function TaxTipPage({ params }: { params: Promise<{ id: string }>
   }
 
   return (
-    <div className="min-h-screen bg-emerald-50 p-8 pb-24">
+    <div className="min-h-screen bg-gray-50 p-8 pb-24">
       <div className="max-w-2xl mx-auto">
-        <h1 className="text-3xl font-bold tracking-tight text-emerald-900 mb-2">Tax and Tip</h1>
-        <span className="inline-flex items-center px-3 py-0.5 bg-emerald-100 text-emerald-800 font-mono text-sm rounded-full mb-6">{id}</span>
+        <h1 className="text-3xl font-bold tracking-tight text-gray-900 mb-2">Tax and Tip</h1>
+        <div className="flex items-center gap-2 mb-6">
+          <span className="inline-flex items-center px-3 py-0.5 bg-emerald-100 text-emerald-800 font-mono text-sm rounded-full">{id}</span>
+          <ParticipantsBadge participants={participantNames} currentUserId={currentUserId} />
+        </div>
 
         {/* Itemized Receipt Breakdown */}
         <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 p-6 mb-4">
-          <h2 className="font-bold text-xl text-emerald-900 mb-3">Your Items</h2>
+          <h2 className="font-bold text-xl text-gray-900 mb-3">Your Items</h2>
 
           <div className="space-y-2 mb-4">
             {userSelectedShares.map((share) => {
@@ -189,7 +246,7 @@ export default function TaxTipPage({ params }: { params: Promise<{ id: string }>
         </div>
 
         <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 p-4 mb-4">
-        <h1 className="font-bold text-xl text-emerald-900 mb-3">Tax</h1>
+        <h1 className="font-bold text-xl text-gray-900 mb-3">Tax</h1>
         <div className="flex justify-between items-center mb-2">
           <div>
             <p className="text-gray-700">Subtotal</p>
@@ -203,13 +260,13 @@ export default function TaxTipPage({ params }: { params: Promise<{ id: string }>
         </div>
 
         <div className="border-t border-gray-300 pt-2 mt-2 flex justify-between items-center">
-          <p className="font-bold text-emerald-900">Subtotal + Tax</p>
-          <p className="font-bold text-emerald-900">${(subtotal + taxAmount).toFixed(2)}</p>
+          <p className="font-bold text-gray-900">Subtotal + Tax</p>
+          <p className="font-bold text-gray-900">${(subtotal + taxAmount).toFixed(2)}</p>
         </div>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 p-4 mb-4">
-        <h1 className="font-bold text-xl text-emerald-900 mb-3">Tip</h1>
+        <h1 className="font-bold text-xl text-gray-900 mb-3">Tip</h1>
 
         <div className="flex flex-col items-center gap-3 mt-4">
           <div className="flex flex-wrap justify-center items-center gap-3">
@@ -217,7 +274,7 @@ export default function TaxTipPage({ params }: { params: Promise<{ id: string }>
               <button
                 key={p}
                 onClick={() => { setCustomTip(false); setSelectedTipPercent(p); }}
-                className={`font-bold px-4 py-2 rounded-md shadow-md bg-white text-emerald-900 hover:bg-emerald-50 transition-colors duration-150 ${
+                className={`font-bold px-4 py-2 rounded-md shadow-md bg-white text-gray-900 hover:bg-gray-50 transition-colors duration-150 ${
                   !customTip && selectedTipPercent === p ? 'outline-none ring-2 ring-emerald-600 bg-emerald-50' : ''
                 }`}
               >
@@ -226,7 +283,7 @@ export default function TaxTipPage({ params }: { params: Promise<{ id: string }>
             ))}
             <button
               onClick={() => { setCustomTip(true); setSelectedTipPercent(undefined); }}
-              className={`font-bold px-4 py-2 rounded-md shadow-md bg-white text-emerald-900 hover:bg-emerald-50 transition-colors duration-150 ${
+              className={`font-bold px-4 py-2 rounded-md shadow-md bg-white text-gray-900 hover:bg-gray-50 transition-colors duration-150 ${
                 customTip ? 'outline-none ring-2 ring-emerald-600 bg-emerald-50' : ''
               }`}
             >
@@ -248,9 +305,9 @@ export default function TaxTipPage({ params }: { params: Promise<{ id: string }>
                 }}
                 onFocus={(e) => e.target.select()}
                 placeholder="0"
-                className="w-20 px-3 py-2 border border-gray-300 rounded-lg text-center focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                className="w-20 px-3 py-2 border border-gray-300 rounded-lg text-center focus:outline-none focus:ring-2 focus:ring-gray-400"
               />
-              <span className="text-emerald-900 font-bold">%</span>
+              <span className="text-gray-900 font-bold">%</span>
             </div>
           )}
         </div>
@@ -277,7 +334,7 @@ export default function TaxTipPage({ params }: { params: Promise<{ id: string }>
           </button>
           <div>
             <p className="text-sm text-gray-600">Final Total</p>
-            <p className="text-2xl font-bold text-emerald-900">${finalTotal.toFixed(2)}</p>
+            <p className="text-2xl font-bold text-gray-900">${finalTotal.toFixed(2)}</p>
           </div>
           <button
             onClick={handleContinue}

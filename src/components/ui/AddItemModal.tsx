@@ -22,7 +22,7 @@ export default function AddItemModal({ onAdd, onClose }: AddItemModalProps) {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-fade-in" onClick={onClose}>
       <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md animate-scale-in" onClick={(e) => e.stopPropagation()}>
-        <h2 className="text-xl font-bold text-emerald-900 mb-4">Add Item</h2>
+        <h2 className="text-xl font-bold text-gray-900 mb-4">Add Item</h2>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Item Name</label>
@@ -31,7 +31,7 @@ export default function AddItemModal({ onAdd, onClose }: AddItemModalProps) {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Burger"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-600"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400"
               autoFocus
             />
           </div>
@@ -44,7 +44,7 @@ export default function AddItemModal({ onAdd, onClose }: AddItemModalProps) {
               value={price}
               onChange={(e) => setPrice(e.target.value)}
               placeholder="0.00"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-600"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400"
             />
           </div>
           <div>
@@ -54,7 +54,7 @@ export default function AddItemModal({ onAdd, onClose }: AddItemModalProps) {
               min="1"
               value={qty}
               onChange={(e) => setQty(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-600"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400"
             />
           </div>
           <div className="flex gap-3 mt-2">

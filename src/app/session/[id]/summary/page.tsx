@@ -1,7 +1,8 @@
 'use client'
 import { Item, ItemShare } from "@/types/types";
 import { supabase } from "@/lib/supabase";
-import { use, useState, useEffect } from 'react';
+import { use, useState, useEffect, useRef } from 'react';
+import ParticipantsBadge from '@/components/ui/ParticipantsBadge';
 
 interface ParticipantData {
   id: string;
@@ -13,7 +14,7 @@ interface ParticipantData {
 export default function SummaryPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
 
-  const currentUserId = typeof window !== 'undefined' ? localStorage.getItem('participantId') : null;
+  const currentUserId = typeof window !== 'undefined' ? sessionStorage.getItem('participantId') : null;
 
   const [sessionCode, setSessionCode] = useState('');
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -27,6 +28,12 @@ export default function SummaryPage({ params }: { params: Promise<{ id: string }
   const [loading, setLoading] = useState(true);
   const [groupOpen, setGroupOpen] = useState(false);
   const [expandedParticipant, setExpandedParticipant] = useState<string | null>(null);
+
+  // Ref to track item IDs for realtime callbacks without causing re-subscriptions
+  const itemIdsRef = useRef<string[]>([]);
+  useEffect(() => {
+    itemIdsRef.current = items.map(i => i.id);
+  }, [items]);
 
   useEffect(() => {
     async function fetchData() {
@@ -135,12 +142,13 @@ export default function SummaryPage({ params }: { params: Promise<{ id: string }
     fetchData();
   }, [id, currentUserId]);
 
-  // Realtime subscription for items (add/edit/delete)
+  // Single realtime channel for all tables
   useEffect(() => {
     if (!sessionId) return;
 
-    const itemsChannel = supabase
-      .channel(`summary_items_${sessionId}`)
+    const channel = supabase
+      .channel(`summary_${sessionId}`)
+      // Items
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'items', filter: `session_id=eq.${sessionId}` },
@@ -162,19 +170,7 @@ export default function SummaryPage({ params }: { params: Promise<{ id: string }
           }
         }
       )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(itemsChannel);
-    };
-  }, [sessionId]);
-
-  // Realtime subscription for item_shares updates
-  useEffect(() => {
-    if (!sessionId) return;
-
-    const sharesChannel = supabase
-      .channel(`summary_shares_${sessionId}`)
+      // Item shares
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'item_shares' },
@@ -187,6 +183,7 @@ export default function SummaryPage({ params }: { params: Promise<{ id: string }
           } | undefined;
 
           if (!record) return;
+          if (itemIdsRef.current.length > 0 && !itemIdsRef.current.includes(record.item_id)) return;
 
           const mapped: ItemShare = {
             participantId: record.participant_id,
@@ -213,30 +210,22 @@ export default function SummaryPage({ params }: { params: Promise<{ id: string }
           }
         }
       )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(sharesChannel);
-    };
-  }, [sessionId, currentUserId]);
-
-  // Realtime subscription for participant updates (submitted_at changes)
-  useEffect(() => {
-    if (!sessionId) return;
-
-    const participantsChannel = supabase
-      .channel(`summary_participants_${sessionId}`)
+      // Participants
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'participants', filter: `session_id=eq.${sessionId}` },
+        { event: '*', schema: 'public', table: 'participants' },
         (payload) => {
+          const record = (payload.new ?? payload.old) as {
+            id: string;
+            name: string;
+            session_id: string;
+            tip_percent: number;
+            submitted_at: string | null;
+          } | undefined;
+
+          if (!record || record.session_id !== sessionId) return;
+
           if (payload.eventType === 'INSERT') {
-            const record = payload.new as {
-              id: string;
-              name: string;
-              tip_percent: number;
-              submitted_at: string | null;
-            };
             setParticipants(prev => {
               if (prev.some(p => p.id === record.id)) return prev;
               return [...prev, {
@@ -247,12 +236,6 @@ export default function SummaryPage({ params }: { params: Promise<{ id: string }
               }];
             });
           } else if (payload.eventType === 'UPDATE') {
-            const record = payload.new as {
-              id: string;
-              name: string;
-              tip_percent: number;
-              submitted_at: string | null;
-            };
             setParticipants(prev =>
               prev.map(p =>
                 p.id === record.id
@@ -261,7 +244,6 @@ export default function SummaryPage({ params }: { params: Promise<{ id: string }
               )
             );
           } else if (payload.eventType === 'DELETE') {
-            const record = payload.old as { id: string };
             setParticipants(prev => prev.filter(p => p.id !== record.id));
           }
         }
@@ -269,9 +251,9 @@ export default function SummaryPage({ params }: { params: Promise<{ id: string }
       .subscribe();
 
     return () => {
-      supabase.removeChannel(participantsChannel);
+      supabase.removeChannel(channel);
     };
-  }, [sessionId]);
+  }, [sessionId, currentUserId]);
 
   // Current user's summary
   const userSelectedShares = shares.filter(
@@ -316,7 +298,7 @@ export default function SummaryPage({ params }: { params: Promise<{ id: string }
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-emerald-50 p-8">
+      <div className="min-h-screen bg-gray-50 p-8">
         <div className="max-w-2xl mx-auto">
           <div className="h-9 w-48 bg-gray-200 rounded-lg animate-skeleton mb-2" />
           <div className="h-5 w-32 bg-gray-200 rounded-full animate-skeleton mb-6" />
@@ -343,17 +325,20 @@ export default function SummaryPage({ params }: { params: Promise<{ id: string }
   }
 
   return (
-    <div className="min-h-screen bg-emerald-50 p-8">
+    <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-2xl mx-auto">
-        <h1 className="text-3xl font-bold tracking-tight text-emerald-900 mb-2">Final Summary</h1>
-        <span className="inline-flex items-center px-3 py-0.5 bg-emerald-100 text-emerald-800 font-mono text-sm rounded-full mb-6">{sessionCode || id}</span>
+        <h1 className="text-3xl font-bold tracking-tight text-gray-900 mb-2">Final Summary</h1>
+        <div className="flex items-center gap-2 mb-6">
+          <span className="inline-flex items-center px-3 py-0.5 bg-emerald-100 text-emerald-800 font-mono text-sm rounded-full">{sessionCode || id}</span>
+          <ParticipantsBadge participants={participants.map(p => ({ id: p.id, name: p.name }))} currentUserId={currentUserId} />
+        </div>
 
         {/* Current user tile */}
         <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-lg text-emerald-900">{userName ? `${userName}'s` : 'Your'} share is</p>
-              <p className="text-5xl font-extrabold text-emerald-700 mt-1">${finalTotal.toFixed(2)}</p>
+              <p className="text-lg text-gray-900">{userName ? `${userName}'s` : 'Your'} share is</p>
+              <p className="text-5xl font-extrabold text-gray-900 mt-1">${finalTotal.toFixed(2)}</p>
             </div>
 
             <div className="text-right text-gray-600 space-y-1">
@@ -369,7 +354,7 @@ export default function SummaryPage({ params }: { params: Promise<{ id: string }
                 <p>Tip ({tipPercent}%)</p>
                 <p>${tipAmount.toFixed(2)}</p>
               </div>
-              <div className="flex justify-between gap-8 border-t border-gray-300 pt-1 mt-1 font-semibold text-emerald-900">
+              <div className="flex justify-between gap-8 border-t border-gray-300 pt-1 mt-1 font-semibold text-gray-900">
                 <p>Total</p>
                 <p>${finalTotal.toFixed(2)}</p>
               </div>
@@ -380,14 +365,14 @@ export default function SummaryPage({ params }: { params: Promise<{ id: string }
         {/* Bill Coverage */}
         <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 p-6 mt-6">
           <div className="flex justify-between items-center mb-2">
-            <h2 className="font-bold text-lg text-emerald-900">Bill Coverage</h2>
+            <h2 className="font-bold text-lg text-gray-900">Bill Coverage</h2>
             <span className="text-sm text-gray-500">
               ${totalCoveredSubtotal.toFixed(2)} of ${billSubtotal.toFixed(2)}
             </span>
           </div>
           <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
             <div
-              className={`h-full rounded-full transition-all duration-300 ${coveragePercent >= 100 ? 'bg-green-500' : 'bg-emerald-500'}`}
+              className={`h-full rounded-full transition-all duration-300 ${coveragePercent >= 100 ? 'bg-green-500' : 'bg-gray-500'}`}
               style={{ width: `${coveragePercent}%` }}
             />
           </div>
@@ -406,7 +391,7 @@ export default function SummaryPage({ params }: { params: Promise<{ id: string }
             className="w-full flex justify-between items-center p-6 text-left hover:bg-gray-50 transition-colors duration-150"
           >
             <div>
-              <h2 className="font-bold text-lg text-emerald-900">Group Summary</h2>
+              <h2 className="font-bold text-lg text-gray-900">Group Summary</h2>
               <p className="text-sm text-gray-500">
                 {participants.filter(p => p.submittedAt).length} of {participants.length} submitted
               </p>
@@ -439,13 +424,13 @@ export default function SummaryPage({ params }: { params: Promise<{ id: string }
                         <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
                           isSubmitted
                             ? 'bg-green-100 text-green-700'
-                            : 'bg-gray-100 text-gray-400'
+                            : 'bg-gray-50 text-gray-400'
                         }`}>
                           {isSubmitted ? '✓' : '·'}
                         </div>
                         <div>
                           <p className="font-semibold text-gray-800">
-                            {p.name}{isCurrentUser && <span className="text-emerald-600 text-sm ml-1">(you)</span>}
+                            {p.name}{isCurrentUser && <span className="text-gray-500 text-sm ml-1">(you)</span>}
                           </p>
                           <p className="text-xs text-gray-400">
                             {isSubmitted ? 'Submitted' : 'Pending'}

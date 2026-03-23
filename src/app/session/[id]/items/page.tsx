@@ -3,8 +3,9 @@ import ItemCard from "@/components/ui/ItemCard";
 import AddItemModal from "@/components/ui/AddItemModal";
 import { Item, ItemShare } from "@/types/types";
 import { supabase } from "@/lib/supabase";
-import { use, useState, useEffect } from 'react';
+import { use, useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import ParticipantsBadge from '@/components/ui/ParticipantsBadge';
 
 
 export default function ItemsPage({ params }: { params: Promise<{ id: string }> }) {
@@ -18,13 +19,20 @@ export default function ItemsPage({ params }: { params: Promise<{ id: string }> 
   const [saving, setSaving] = useState(false);
   const [shares, setShares] = useState<ItemShare[]>([]);
   const [otherShares, setOtherShares] = useState<ItemShare[]>([]);
+  const [participantNames, setParticipantNames] = useState<{ id: string; name: string }[]>([]);
   const [participantCount, setParticipantCount] = useState(1);
   const [splitCount, setSplitCount] = useState(1);
   const [showSplitModal, setShowSplitModal] = useState(false);
   const [evenSplitVersion, setEvenSplitVersion] = useState(0);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
 
-  const currentUserId = typeof window !== 'undefined' ? localStorage.getItem('participantId') : null;
+  const currentUserId = typeof window !== 'undefined' ? sessionStorage.getItem('participantId') : null;
+
+  // Ref to track item IDs for use in realtime callbacks without causing re-subscriptions
+  const itemIdsRef = useRef<string[]>([]);
+  useEffect(() => {
+    itemIdsRef.current = items.map(i => i.id);
+  }, [items]);
 
   // Fetch session UUID, items, and existing shares on mount
   useEffect(() => {
@@ -49,15 +57,17 @@ export default function ItemsPage({ params }: { params: Promise<{ id: string }> 
 
       setSessionId(session.id);
 
-      // Fetch participant count for this session
-      const { count: pCount, error: pError } = await supabase
+      // Fetch participants for this session
+      const { data: pData, error: pError } = await supabase
         .from('participants')
-        .select('*', { count: 'exact', head: true })
-        .eq('session_id', session.id);
+        .select('id, name')
+        .eq('session_id', session.id)
+        .order('created_at', { ascending: true });
 
-      if (!pError && pCount) {
-        setParticipantCount(pCount);
-        setSplitCount(pCount);
+      if (!pError && pData) {
+        setParticipantNames(pData);
+        setParticipantCount(pData.length);
+        setSplitCount(pData.length);
       }
 
       // Fetch items for this session
@@ -108,62 +118,16 @@ export default function ItemsPage({ params }: { params: Promise<{ id: string }> 
     fetchSessionAndItems();
   }, [id, currentUserId]);
 
-  // Realtime subscription for item_shares changes from other participants
-  useEffect(() => {
-    if (!sessionId || !currentUserId || items.length === 0) return;
+  // Single realtime channel for all tables — items, item_shares, and participants
+  const currentUserIdRef = useRef(currentUserId);
+  currentUserIdRef.current = currentUserId;
 
-    const itemIds = items.map(i => i.id);
-
-    const channel = supabase
-      .channel(`item_shares_${sessionId}`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'item_shares' },
-        (payload) => {
-          const record = (payload.new ?? payload.old) as {
-            participant_id: string;
-            item_id: string;
-            proportion: number;
-            split_method: string;
-          } | undefined;
-
-          if (!record || record.participant_id === currentUserId) return;
-          if (!itemIds.includes(record.item_id)) return;
-
-          const mapped: ItemShare = {
-            participantId: record.participant_id,
-            itemId: record.item_id,
-            proportion: Number(record.proportion),
-            splitMethod: record.split_method as 'qty' | 'percentage',
-          };
-
-          setOtherShares(prev => {
-            if (payload.eventType === 'DELETE') {
-              return prev.filter(
-                s => !(s.participantId === record.participant_id && s.itemId === record.item_id)
-              );
-            }
-            // INSERT or UPDATE — upsert
-            const without = prev.filter(
-              s => !(s.participantId === mapped.participantId && s.itemId === mapped.itemId)
-            );
-            return [...without, mapped];
-          });
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [sessionId, currentUserId, items]);
-
-  // Realtime subscription for items (add/edit/delete from other users)
   useEffect(() => {
     if (!sessionId) return;
 
     const channel = supabase
-      .channel(`items_${sessionId}`)
+      .channel(`session_${sessionId}`)
+      // Items (add/edit/delete)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'items', filter: `session_id=eq.${sessionId}` },
@@ -182,6 +146,74 @@ export default function ItemsPage({ params }: { params: Promise<{ id: string }> 
             setItems(prev => prev.filter(i => i.id !== r.id));
             setShares(prev => prev.filter(s => s.itemId !== r.id));
             setOtherShares(prev => prev.filter(s => s.itemId !== r.id));
+          }
+        }
+      )
+      // Item shares (other participants' claims)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'item_shares' },
+        (payload) => {
+          const record = (payload.new ?? payload.old) as {
+            participant_id: string;
+            item_id: string;
+            proportion: number;
+            split_method: string;
+          } | undefined;
+
+          if (!record || record.participant_id === currentUserIdRef.current) return;
+          if (itemIdsRef.current.length > 0 && !itemIdsRef.current.includes(record.item_id)) return;
+
+          const mapped: ItemShare = {
+            participantId: record.participant_id,
+            itemId: record.item_id,
+            proportion: Number(record.proportion),
+            splitMethod: record.split_method as 'qty' | 'percentage',
+          };
+
+          setOtherShares(prev => {
+            if (payload.eventType === 'DELETE') {
+              return prev.filter(
+                s => !(s.participantId === record.participant_id && s.itemId === record.item_id)
+              );
+            }
+            const without = prev.filter(
+              s => !(s.participantId === mapped.participantId && s.itemId === mapped.itemId)
+            );
+            return [...without, mapped];
+          });
+        }
+      )
+      // Participants (joins/leaves)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'participants' },
+        (payload) => {
+          const record = (payload.new ?? payload.old) as {
+            id: string;
+            name: string;
+            session_id: string;
+          } | undefined;
+
+          if (!record || record.session_id !== sessionId) return;
+
+          if (payload.eventType === 'INSERT') {
+            setParticipantNames(prev => {
+              if (prev.some(p => p.id === record.id)) return prev;
+              const updated = [...prev, { id: record.id, name: record.name }];
+              setParticipantCount(updated.length);
+              return updated;
+            });
+          } else if (payload.eventType === 'DELETE') {
+            setParticipantNames(prev => {
+              const updated = prev.filter(p => p.id !== record.id);
+              setParticipantCount(updated.length);
+              return updated;
+            });
+          } else if (payload.eventType === 'UPDATE') {
+            setParticipantNames(prev =>
+              prev.map(p => p.id === record.id ? { ...p, name: record.name } : p)
+            );
           }
         }
       )
@@ -353,7 +385,7 @@ export default function ItemsPage({ params }: { params: Promise<{ id: string }> 
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-emerald-50 p-8 pb-24">
+      <div className="min-h-screen bg-gray-50 p-8 pb-24">
         <div className="max-w-2xl mx-auto">
           <div className="h-9 w-56 bg-gray-200 rounded-lg animate-skeleton mb-2" />
           <div className="h-5 w-32 bg-gray-200 rounded-full animate-skeleton mb-6" />
@@ -381,17 +413,20 @@ export default function ItemsPage({ params }: { params: Promise<{ id: string }> 
   }
 
   return (
-    <div className="min-h-screen bg-emerald-50 p-8 pb-24">
+    <div className="min-h-screen bg-gray-50 p-8 pb-24">
       <div className="max-w-2xl mx-auto">
         <div className="flex justify-between items-start mb-2">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-emerald-900">Select Your Items</h1>
-            <span className="inline-flex items-center mt-1 px-3 py-0.5 bg-emerald-100 text-emerald-800 font-mono text-sm rounded-full">{id}</span>
+            <h1 className="text-3xl font-bold tracking-tight text-gray-900">Select Your Items</h1>
+            <div className="flex items-center gap-2 mt-1">
+              <span className="inline-flex items-center px-3 py-0.5 bg-emerald-100 text-emerald-800 font-mono text-sm rounded-full">{id}</span>
+              <ParticipantsBadge participants={participantNames} currentUserId={currentUserId} />
+            </div>
           </div>
           {items.length > 0 && (
             <button
               onClick={() => setShowSplitModal(true)}
-              className="font-bold px-4 py-2 rounded-md shadow-md bg-white text-emerald-700 border-2 border-emerald-700 hover:bg-emerald-50 transition-colors duration-150"
+              className="font-bold px-4 py-2 rounded-md shadow-md bg-white text-gray-700 border-2 border-gray-400 hover:bg-gray-50 transition-colors duration-150"
             >
               Split Evenly
             </button>
@@ -450,7 +485,7 @@ export default function ItemsPage({ params }: { params: Promise<{ id: string }> 
       {showSplitModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-fade-in">
           <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-sm animate-scale-in">
-            <h2 className="font-bold text-xl text-emerald-900 mb-2">Split Evenly</h2>
+            <h2 className="font-bold text-xl text-gray-900 mb-2">Split Evenly</h2>
             <p className="text-sm text-gray-500 mb-6">Set your share on every item to 1/N</p>
 
             <div className="flex flex-col items-center gap-4">
@@ -459,7 +494,7 @@ export default function ItemsPage({ params }: { params: Promise<{ id: string }> 
                 <button
                   onClick={() => setSplitCount(Math.max(participantCount, splitCount - 1))}
                   disabled={splitCount <= participantCount}
-                  className="font-bold px-3 py-1 rounded-md bg-gray-100 text-emerald-900 hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors duration-150"
+                  className="font-bold px-3 py-1 rounded-md bg-gray-50 text-gray-900 hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors duration-150"
                 >
                   -
                 </button>
@@ -472,23 +507,23 @@ export default function ItemsPage({ params }: { params: Promise<{ id: string }> 
                     if (val >= participantCount) setSplitCount(val);
                   }}
                   onFocus={(e) => e.target.select()}
-                  className="w-14 px-2 py-1 border border-gray-300 rounded-md text-center focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                  className="w-14 px-2 py-1 border border-gray-300 rounded-md text-center focus:outline-none focus:ring-2 focus:ring-gray-400"
                 />
                 <button
                   onClick={() => setSplitCount(splitCount + 1)}
-                  className="font-bold px-3 py-1 rounded-md bg-gray-100 text-emerald-900 hover:bg-gray-200 transition-colors duration-150"
+                  className="font-bold px-3 py-1 rounded-md bg-gray-50 text-gray-900 hover:bg-gray-200 transition-colors duration-150"
                 >
                   +
                 </button>
                 <span className="text-sm text-gray-600">people</span>
               </div>
-              <p className="text-emerald-700 font-semibold">{Math.round((1 / splitCount) * 100)}% each</p>
+              <p className="text-gray-700 font-semibold">{Math.round((1 / splitCount) * 100)}% each</p>
             </div>
 
             <div className="flex gap-3 mt-6">
               <button
                 onClick={() => setShowSplitModal(false)}
-                className="flex-1 font-bold px-4 py-2 rounded-md bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors duration-150"
+                className="flex-1 font-bold px-4 py-2 rounded-md bg-gray-50 text-gray-600 hover:bg-gray-200 transition-colors duration-150"
               >
                 Cancel
               </button>
@@ -507,7 +542,7 @@ export default function ItemsPage({ params }: { params: Promise<{ id: string }> 
         <div className="max-w-2xl mx-auto flex justify-between items-center">
           <div>
             <p className="text-sm text-gray-600">Your Subtotal</p>
-            <p className="text-2xl font-bold text-emerald-900">${subtotal.toFixed(2)}</p>
+            <p className="text-2xl font-bold text-gray-900">${subtotal.toFixed(2)}</p>
           </div>
           <button
             onClick={handleContinue}
