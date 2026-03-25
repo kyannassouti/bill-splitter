@@ -335,29 +335,27 @@ export default function SummaryPage({ params }: { params: Promise<{ id: string }
 
         {/* Current user tile */}
         <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-lg text-gray-900">{userName ? `${userName}'s` : 'Your'} share is</p>
-              <p className="text-5xl font-extrabold text-gray-900 mt-1">${finalTotal.toFixed(2)}</p>
-            </div>
+          <div>
+            <p className="text-lg text-gray-900">{userName ? `${userName}'s` : 'Your'} share is</p>
+            <p className="text-5xl font-extrabold text-gray-900 mt-1">${finalTotal.toFixed(2)}</p>
+          </div>
 
-            <div className="text-right text-gray-600 space-y-1">
-              <div className="flex justify-between gap-8">
-                <p>Subtotal</p>
-                <p>${subtotal.toFixed(2)}</p>
-              </div>
-              <div className="flex justify-between gap-8">
-                <p>Tax ({(taxPercent * 100).toFixed(0)}%)</p>
-                <p>${taxAmount.toFixed(2)}</p>
-              </div>
-              <div className="flex justify-between gap-8">
-                <p>Tip ({tipPercent}%)</p>
-                <p>${tipAmount.toFixed(2)}</p>
-              </div>
-              <div className="flex justify-between gap-8 border-t border-gray-300 pt-1 mt-1 font-semibold text-gray-900">
-                <p>Total</p>
-                <p>${finalTotal.toFixed(2)}</p>
-              </div>
+          <div className="text-gray-600 space-y-1 mt-4 border-t border-gray-200 pt-4">
+            <div className="flex justify-between">
+              <p>Subtotal</p>
+              <p>${subtotal.toFixed(2)}</p>
+            </div>
+            <div className="flex justify-between">
+              <p>Tax ({(taxPercent * 100).toFixed(0)}%)</p>
+              <p>${taxAmount.toFixed(2)}</p>
+            </div>
+            <div className="flex justify-between">
+              <p>Tip ({tipPercent}%)</p>
+              <p>${tipAmount.toFixed(2)}</p>
+            </div>
+            <div className="flex justify-between border-t border-gray-300 pt-1 mt-1 font-semibold text-gray-900">
+              <p>Total</p>
+              <p>${finalTotal.toFixed(2)}</p>
             </div>
           </div>
         </div>
