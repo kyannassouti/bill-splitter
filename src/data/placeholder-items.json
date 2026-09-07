@@ -1,0 +1,6 @@
+[
+  { "name": "Margherita Pizza", "price": 14.99, "qty": 1 },
+  { "name": "Caesar Salad",     "price": 9.50,  "qty": 2 },
+  { "name": "Garlic Bread",     "price": 4.25,  "qty": 3 },
+  { "name": "Sparkling Water",  "price": 3.00,  "qty": 4 }
+]

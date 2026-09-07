@@ -135,24 +135,29 @@ export default function ItemCard({ id, name, price, qty, currentShare, othersCla
   const totalPrice = price * qty;
 
   return (
-    <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden">
+    <div className="bg-paper shadow-[0_1px_2px_rgba(25,28,26,0.06)] transition-shadow duration-200 overflow-hidden">
       {/* Collapsed header — always visible */}
       <button
         type="button"
         onClick={onToggle}
-        className="w-full flex items-center justify-between p-4 text-left hover:bg-gray-50/50 transition-colors duration-150"
+        className="w-full flex items-center justify-between p-4 text-left hover:bg-paper-edge/50 transition-colors duration-150"
       >
         <div className="flex-1 min-w-0">
-          <p className="font-bold text-gray-900 truncate">{name} <span className="font-normal text-gray-500">x{qty}</span></p>
-          <p className="text-sm text-gray-500">${price.toFixed(2)} each · ${totalPrice.toFixed(2)} total</p>
+          <p className="font-medium text-ink truncate">{name} <span className="font-mono text-ink-soft text-sm">×{qty}</span></p>
+          <p className="font-mono text-[0.6875rem] text-ink-faint tabular-nums">
+            ${price.toFixed(2)} each · ${totalPrice.toFixed(2)} total
+            {othersClaimed > 0 && (
+              <span className="text-ink-soft"> · {Math.round(othersClaimed * 100)}% taken</span>
+            )}
+          </p>
         </div>
         <div className="flex items-center gap-3 ml-4 shrink-0">
           <div className="text-right">
-            <p className="font-bold text-gray-800">${floorCents(shareAmount).toFixed(2)}</p>
-            <p className="text-xs text-gray-400">Your share</p>
+            <p className="font-mono font-medium text-ink tabular-nums">${floorCents(shareAmount).toFixed(2)}</p>
+            <p className="font-mono text-[0.625rem] uppercase tracking-[0.14em] text-ink-faint">Your share</p>
           </div>
           <svg
-            className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}
+            className={`w-4 h-4 text-ink-faint transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}
             fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
           >
             <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
@@ -162,7 +167,7 @@ export default function ItemCard({ id, name, price, qty, currentShare, othersCla
 
       {/* Expanded content */}
       {expanded && (
-        <div className="px-4 pb-4 border-t border-gray-100">
+        <div className="px-4 pb-4 border-t border-paper-deep">
           {/* Edit / Delete actions */}
           {(onItemUpdate || onItemDelete) && (
             <div className="pt-3 mb-3">
@@ -172,7 +177,7 @@ export default function ItemCard({ id, name, price, qty, currentShare, othersCla
                     type="text"
                     value={editName}
                     onChange={(e) => setEditName(e.target.value)}
-                    className="px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-gray-400 font-bold text-lg"
+                    className="px-2 py-1 border border-paper-deep focus:outline-none focus:ring-2 focus:ring-pine font-bold text-lg"
                     autoFocus
                   />
                   <div className="flex gap-2">
@@ -182,7 +187,7 @@ export default function ItemCard({ id, name, price, qty, currentShare, othersCla
                       min="0.01"
                       value={editPrice}
                       onChange={(e) => setEditPrice(e.target.value)}
-                      className="w-24 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm"
+                      className="w-24 px-2 py-1 border border-paper-deep focus:outline-none focus:ring-2 focus:ring-pine text-sm"
                       placeholder="Price"
                     />
                     <input
@@ -190,20 +195,20 @@ export default function ItemCard({ id, name, price, qty, currentShare, othersCla
                       min="1"
                       value={editQty}
                       onChange={(e) => setEditQty(e.target.value)}
-                      className="w-16 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-gray-400 text-sm"
+                      className="w-16 px-2 py-1 border border-paper-deep focus:outline-none focus:ring-2 focus:ring-pine text-sm"
                       placeholder="Qty"
                     />
                   </div>
                   <div className="flex gap-2">
                     <button
                       onClick={handleEditCancel}
-                      className="text-sm px-3 py-1 rounded bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors duration-150"
+                      className="font-mono text-[0.625rem] uppercase tracking-[0.14em] px-2 py-1 transition-colors duration-150 text-ink-soft hover:text-ink hover:bg-paper-edge"
                     >
                       Cancel
                     </button>
                     <button
                       onClick={handleEditSave}
-                      className="text-sm px-3 py-1 rounded bg-emerald-700 text-white hover:bg-emerald-800 transition-colors duration-150"
+                      className="font-mono text-[0.625rem] uppercase tracking-[0.14em] px-2 py-1 transition-colors duration-150 bg-pine text-paper hover:bg-pine-deep"
                     >
                       Save
                     </button>
@@ -214,7 +219,7 @@ export default function ItemCard({ id, name, price, qty, currentShare, othersCla
                   {onItemUpdate && (
                     <button
                       onClick={() => setIsEditing(true)}
-                      className="text-xs px-2 py-1 rounded bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors duration-150"
+                      className="font-mono text-[0.625rem] uppercase tracking-[0.14em] px-2 py-1 transition-colors duration-150 text-ink-soft hover:text-ink hover:bg-paper-edge"
                     >
                       Edit
                     </button>
@@ -224,7 +229,7 @@ export default function ItemCard({ id, name, price, qty, currentShare, othersCla
                       onClick={() => setConfirmingDelete(true)}
                       disabled={hasClaims}
                       title={hasClaims ? 'Item claimed by a participant' : undefined}
-                      className="text-xs px-2 py-1 rounded bg-red-50 text-red-600 hover:bg-red-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors duration-150"
+                      className="font-mono text-[0.625rem] uppercase tracking-[0.14em] px-2 py-1 transition-colors duration-150 text-alert hover:bg-alert/10 disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                       Delete
                     </button>
@@ -233,13 +238,13 @@ export default function ItemCard({ id, name, price, qty, currentShare, othersCla
                     <div className="flex gap-1">
                       <button
                         onClick={() => setConfirmingDelete(false)}
-                        className="text-xs px-2 py-1 rounded bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors duration-150"
+                        className="font-mono text-[0.625rem] uppercase tracking-[0.14em] px-2 py-1 transition-colors duration-150 text-ink-soft hover:text-ink hover:bg-paper-edge"
                       >
                         Cancel
                       </button>
                       <button
                         onClick={() => onItemDelete(id)}
-                        className="text-xs px-2 py-1 rounded bg-red-600 text-white hover:bg-red-700 transition-colors duration-150"
+                        className="font-mono text-[0.625rem] uppercase tracking-[0.14em] px-2 py-1 transition-colors duration-150 bg-alert text-paper hover:bg-alert/90"
                       >
                         Confirm
                       </button>
@@ -251,24 +256,24 @@ export default function ItemCard({ id, name, price, qty, currentShare, othersCla
           )}
 
           {/* Split method toggle */}
-          <div className="flex justify-center gap-4">
+          <div className="flex border border-paper-deep divide-x divide-paper-deep">
             <button
               onClick={() => handleSplitMethodChange('qty')}
-              className={`flex-1 font-bold px-6 py-2 rounded-md shadow-md transition-colors duration-150 ${splitMethod === 'qty'
-                  ? 'bg-emerald-700 text-white hover:bg-emerald-800'
-                  : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
+              className={`flex-1 font-mono text-[0.6875rem] uppercase tracking-[0.14em] py-2.5 transition-colors duration-150 ${splitMethod === 'qty'
+                  ? 'bg-pine text-paper'
+                  : 'bg-paper text-ink-soft hover:bg-paper-edge'
                 }`}
             >
-              By Quantity
+              By quantity
             </button>
             <button
               onClick={() => handleSplitMethodChange('percentage')}
-              className={`flex-1 font-bold px-6 py-2 rounded-md shadow-md transition-colors duration-150 ${splitMethod === 'percentage'
-                  ? 'bg-emerald-700 text-white hover:bg-emerald-800'
-                  : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
+              className={`flex-1 font-mono text-[0.6875rem] uppercase tracking-[0.14em] py-2.5 transition-colors duration-150 ${splitMethod === 'percentage'
+                  ? 'bg-pine text-paper'
+                  : 'bg-paper text-ink-soft hover:bg-paper-edge'
                 }`}
             >
-              By Proportion
+              By proportion
             </button>
           </div>
 
@@ -278,7 +283,7 @@ export default function ItemCard({ id, name, price, qty, currentShare, othersCla
                 <button
                   onClick={() => handleQuantityChange(Math.max(0, selectedQty - 1))}
                   disabled={selectedQty <= 0}
-                  className='font-bold px-4 py-2 rounded-md shadow-md bg-white text-gray-900 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors duration-150'
+                  className='font-medium px-4 py-2 border border-paper-deep bg-paper text-ink hover:bg-paper-edge disabled:opacity-40 disabled:cursor-not-allowed transition-colors duration-150'
                 >
                   -
                 </button>
@@ -294,18 +299,18 @@ export default function ItemCard({ id, name, price, qty, currentShare, othersCla
                     }
                   }}
                   onFocus={(e) => e.target.select()}
-                  className='w-20 px-3 py-2 border border-gray-300 rounded-lg text-center focus:outline-none focus:ring-2 focus:ring-gray-400'
+                  className='w-20 px-3 py-2 border border-paper-deep text-center focus:outline-none focus:ring-2 focus:ring-pine'
                 />
                 <button
                   onClick={() => handleQuantityChange(Math.min(maxQty, selectedQty + 1))}
                   disabled={selectedQty >= maxQty}
-                  className='font-bold px-4 py-2 rounded-md shadow-md bg-white text-gray-900 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors duration-150'
+                  className='font-medium px-4 py-2 border border-paper-deep bg-paper text-ink hover:bg-paper-edge disabled:opacity-40 disabled:cursor-not-allowed transition-colors duration-150'
                 >
                   +
                 </button>
               </div>
               {maxQty < qty && (
-                <p className="text-xs text-gray-400">Max {maxQty} of {qty} available</p>
+                <p className="font-mono text-[0.6875rem] text-ink-faint">Max {maxQty} of {qty} available</p>
               )}
             </div>
           )}
@@ -323,7 +328,7 @@ export default function ItemCard({ id, name, price, qty, currentShare, othersCla
                     key={p}
                     onClick={() => { setCustomPercent(false); handlePercentageSelect(value); }}
                     disabled={p > remainingPercent}
-                    className={`font-bold px-4 py-2 rounded-md shadow-md bg-white text-gray-900 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors duration-150 ${!customPercent && splitPercent !== undefined && Math.round(splitPercent) === p ? 'outline-none ring-2 ring-emerald-600 bg-emerald-50' : ''
+                    className={`font-medium px-4 py-2 border border-paper-deep bg-paper text-ink hover:bg-paper-edge disabled:opacity-40 disabled:cursor-not-allowed transition-colors duration-150 ${!customPercent && splitPercent !== undefined && Math.round(splitPercent) === p ? 'outline-none ring-2 ring-pine bg-pine/5' : ''
                       }`}
                   >
                     {p}%
@@ -331,7 +336,7 @@ export default function ItemCard({ id, name, price, qty, currentShare, othersCla
                 ))}
                 <button
                   onClick={() => { setCustomPercent(true); setCustomInput(''); setSplitPercent(undefined); onShareUpdate(id, 0, 'percentage'); }}
-                  className={`font-bold px-4 py-2 rounded-md shadow-md bg-white text-gray-900 hover:bg-gray-50 transition-colors duration-150 ${customPercent ? 'outline-none ring-2 ring-emerald-600 bg-emerald-50' : ''
+                  className={`font-medium px-4 py-2 border border-paper-deep bg-paper text-ink hover:bg-paper-edge transition-colors duration-150 ${customPercent ? 'outline-none ring-2 ring-pine bg-pine/5' : ''
                     }`}
                 >
                   Custom
@@ -371,9 +376,9 @@ export default function ItemCard({ id, name, price, qty, currentShare, othersCla
                       }}
                       onFocus={(e) => e.target.select()}
                       placeholder="e.g. 1/3 or 25"
-                      className='w-28 px-3 py-2 border border-gray-300 rounded-lg text-center focus:outline-none focus:ring-2 focus:ring-gray-400'
+                      className='w-28 px-3 py-2 border border-paper-deep text-center focus:outline-none focus:ring-2 focus:ring-pine'
                     />
-                    <span className='text-sm text-gray-500'>= {Math.round(splitPercent ?? 0)}%</span>
+                    <span className='font-mono text-sm text-ink-soft tabular-nums'>= {Math.round(splitPercent ?? 0)}%</span>
                     <button
                       onClick={() => {
                         const remaining = Math.max(0, 1 - othersClaimed);
@@ -383,12 +388,12 @@ export default function ItemCard({ id, name, price, qty, currentShare, othersCla
                       }}
                       disabled={Math.max(0, 1 - othersClaimed) === 0}
                       title="Claim the remaining unclaimed portion of this item"
-                      className="font-bold px-3 py-2 rounded-md shadow-md bg-emerald-100 text-emerald-800 hover:bg-emerald-200 disabled:opacity-40 disabled:cursor-not-allowed text-sm transition-colors duration-150"
+                      className="font-mono text-[0.6875rem] uppercase tracking-[0.14em] px-3 py-2 bg-pine/10 text-pine hover:bg-pine/20 disabled:opacity-40 disabled:cursor-not-allowed transition-colors duration-150"
                     >
                       Remaining
                     </button>
                   </div>
-                  <p className='text-xs text-gray-400'>
+                  <p className='font-mono text-[0.6875rem] text-ink-faint'>
                     Enter a fraction (1/4) or percentage (25)
                     {remainingPercent < 100 && <span> · max {Math.round(remainingPercent)}%</span>}
                   </p>
@@ -404,20 +409,20 @@ export default function ItemCard({ id, name, price, qty, currentShare, othersCla
             const totalPercent = Math.round(othersPercent + youPercent);
             return (
               <div className="mt-4">
-                <div className="flex justify-between text-xs text-gray-500 mb-1">
+                <div className="flex justify-between font-mono text-[0.625rem] uppercase tracking-[0.12em] text-ink-soft mb-1.5">
                   <span>{totalPercent}% claimed</span>
                   {othersPercent > 0 && <span>{Math.round(othersPercent)}% others &middot; {Math.round(youPercent)}% you</span>}
                 </div>
-                <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden flex">
+                <div className="w-full h-[3px] bg-paper-deep overflow-hidden flex">
                   {othersPercent > 0 && (
                     <div
-                      className="h-full bg-gray-400 transition-all duration-300"
+                      className="h-full bg-ink-faint transition-all duration-300"
                       style={{ width: `${othersPercent}%` }}
                     />
                   )}
                   {youPercent > 0 && (
                     <div
-                      className="h-full bg-emerald-500 transition-all duration-300"
+                      className="h-full bg-pine transition-all duration-300"
                       style={{ width: `${youPercent}%` }}
                     />
                   )}

@@ -1,9 +1,35 @@
 @import "tailwindcss";
 
 @theme {
+  /* Thermal receipt stock and print */
+  --color-paper: #FBF9F5;
+  --color-paper-edge: #F1EDE4;
+  --color-paper-deep: #E7E1D4;
+  --color-ink: #191C1A;
+  --color-ink-soft: #6E736C;
+  --color-ink-faint: #A3A79E;
+
+  /* Action */
+  --color-pine: #04624A;
+  --color-pine-deep: #034C39;
+
+  /* Claim ink — three distinguishable stamp colors */
+  --color-claim-1: #04624A;
+  --color-claim-2: #28558C;
+  --color-claim-3: #7A3D5E;
+
+  /* Destructive and pending states, kept in the same ink family */
+  --color-alert: #9B3222;
+  --color-flag: #B07A16;
+
+  --font-sans: var(--font-plex-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, SFMono-Regular, monospace;
+
   --animate-skeleton: skeleton 1.5s ease-in-out infinite;
   --animate-fade-in: fade-in 0.2s ease-out;
   --animate-scale-in: scale-in 0.2s ease-out;
+  --animate-print-in: print-in 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-rise-in: rise-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 @keyframes skeleton {
@@ -19,4 +45,32 @@
 @keyframes scale-in {
   from { opacity: 0; transform: scale(0.95); }
   to { opacity: 1; transform: scale(1); }
+}
+
+/* A claim stamping onto the receipt */
+@keyframes print-in {
+  from { opacity: 0; transform: translateY(3px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Hero entrance */
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Dotted leader between a label and its price, receipt-style */
+.leader {
+  flex: 1;
+  margin: 0 0.5rem;
+  border-bottom: 1px dotted var(--color-ink-faint);
+  transform: translateY(-0.28em);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

@@ -1,0 +1,26 @@
+[
+  {
+    "name": "Maya",
+    "tipPercent": 18,
+    "submitted": true,
+    "claims": [
+      { "item": 1, "proportion": 0.5, "splitMethod": "qty" }
+    ]
+  },
+  {
+    "name": "Alex",
+    "tipPercent": 20,
+    "submitted": true,
+    "claims": [
+      { "item": 2, "proportion": 0.6666666666666666, "splitMethod": "qty" }
+    ]
+  },
+  {
+    "name": "Sam",
+    "tipPercent": 0,
+    "submitted": false,
+    "claims": [
+      { "item": 3, "proportion": 0.25, "splitMethod": "qty" }
+    ]
+  }
+]

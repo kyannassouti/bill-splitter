@@ -298,26 +298,26 @@ export default function SummaryPage({ params }: { params: Promise<{ id: string }
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 p-8">
+      <div className="min-h-screen bg-paper-edge px-5 py-8 sm:p-8">
         <div className="max-w-2xl mx-auto">
-          <div className="h-9 w-48 bg-gray-200 rounded-lg animate-skeleton mb-2" />
-          <div className="h-5 w-32 bg-gray-200 rounded-full animate-skeleton mb-6" />
-          <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
+          <div className="h-9 w-48 bg-paper-deep animate-skeleton mb-2" />
+          <div className="h-5 w-32 bg-paper-deep rounded-full animate-skeleton mb-6" />
+          <div className="bg-paper shadow-[0_1px_2px_rgba(25,28,26,0.06)] p-6 mb-6">
             <div className="flex justify-between">
               <div className="space-y-2">
-                <div className="h-5 w-36 bg-gray-200 rounded animate-skeleton" />
-                <div className="h-12 w-32 bg-gray-200 rounded animate-skeleton" />
+                <div className="h-5 w-36 bg-paper-deep animate-skeleton" />
+                <div className="h-12 w-32 bg-paper-deep animate-skeleton" />
               </div>
               <div className="space-y-2">
-                <div className="h-4 w-24 bg-gray-200 rounded animate-skeleton" />
-                <div className="h-4 w-24 bg-gray-200 rounded animate-skeleton" />
-                <div className="h-4 w-24 bg-gray-200 rounded animate-skeleton" />
+                <div className="h-4 w-24 bg-paper-deep animate-skeleton" />
+                <div className="h-4 w-24 bg-paper-deep animate-skeleton" />
+                <div className="h-4 w-24 bg-paper-deep animate-skeleton" />
               </div>
             </div>
           </div>
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <div className="h-5 w-28 bg-gray-200 rounded animate-skeleton mb-3" />
-            <div className="h-3 w-full bg-gray-200 rounded-full animate-skeleton" />
+          <div className="bg-paper shadow-[0_1px_2px_rgba(25,28,26,0.06)] p-6">
+            <div className="h-5 w-28 bg-paper-deep animate-skeleton mb-3" />
+            <div className="h-3 w-full bg-paper-deep rounded-full animate-skeleton" />
           </div>
         </div>
       </div>
@@ -325,77 +325,81 @@ export default function SummaryPage({ params }: { params: Promise<{ id: string }
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
+    <div className="min-h-screen bg-paper-edge px-5 py-8 sm:p-8">
       <div className="max-w-2xl mx-auto">
-        <h1 className="text-3xl font-bold tracking-tight text-gray-900 mb-2">Final Summary</h1>
+        <h1 className="text-2xl sm:text-3xl font-mono font-medium tracking-[-0.02em] text-ink mb-2">Final summary</h1>
         <div className="flex items-center gap-2 mb-6">
-          <span className="inline-flex items-center px-3 py-0.5 bg-emerald-100 text-emerald-800 font-mono text-sm rounded-full">{sessionCode || id}</span>
+          <span className="inline-flex items-center px-2.5 py-1 bg-pine/10 text-pine font-mono text-xs tracking-[0.2em]">{sessionCode || id}</span>
           <ParticipantsBadge participants={participants.map(p => ({ id: p.id, name: p.name }))} currentUserId={currentUserId} />
         </div>
 
         {/* Current user tile */}
-        <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 p-6">
+        <div className="bg-paper shadow-[0_1px_2px_rgba(25,28,26,0.06)] transition-shadow duration-200 p-6">
           <div>
-            <p className="text-lg text-gray-900">{userName ? `${userName}'s` : 'Your'} share is</p>
-            <p className="text-5xl font-extrabold text-gray-900 mt-1">${finalTotal.toFixed(2)}</p>
+            <p className="text-lg text-ink">{userName ? `${userName}'s` : 'Your'} share is</p>
+            <p className="text-5xl font-mono font-medium text-ink tabular-nums mt-1">${finalTotal.toFixed(2)}</p>
           </div>
 
-          <div className="text-gray-600 space-y-1 mt-4 border-t border-gray-200 pt-4">
-            <div className="flex justify-between">
+          <div className="text-ink-soft space-y-1 mt-4 border-t border-paper-deep pt-4">
+            <div className="flex items-baseline font-mono text-sm">
               <p>Subtotal</p>
-              <p>${subtotal.toFixed(2)}</p>
+              <span className="leader" />
+              <p className="tabular-nums">${subtotal.toFixed(2)}</p>
             </div>
-            <div className="flex justify-between">
+            <div className="flex items-baseline font-mono text-sm">
               <p>Tax ({(taxPercent * 100).toFixed(0)}%)</p>
-              <p>${taxAmount.toFixed(2)}</p>
+              <span className="leader" />
+              <p className="tabular-nums">${taxAmount.toFixed(2)}</p>
             </div>
-            <div className="flex justify-between">
+            <div className="flex items-baseline font-mono text-sm">
               <p>Tip ({tipPercent}%)</p>
-              <p>${tipAmount.toFixed(2)}</p>
+              <span className="leader" />
+              <p className="tabular-nums">${tipAmount.toFixed(2)}</p>
             </div>
-            <div className="flex justify-between border-t border-gray-300 pt-1 mt-1 font-semibold text-gray-900">
+            <div className="flex items-baseline font-mono text-sm border-t border-ink/15 pt-2 mt-2 font-medium text-ink">
               <p>Total</p>
-              <p>${finalTotal.toFixed(2)}</p>
+              <span className="leader" />
+              <p className="tabular-nums">${finalTotal.toFixed(2)}</p>
             </div>
           </div>
         </div>
 
         {/* Bill Coverage */}
-        <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 p-6 mt-6">
+        <div className="bg-paper shadow-[0_1px_2px_rgba(25,28,26,0.06)] transition-shadow duration-200 p-6 mt-6">
           <div className="flex justify-between items-center mb-2">
-            <h2 className="font-bold text-lg text-gray-900">Bill Coverage</h2>
-            <span className="text-sm text-gray-500">
+            <h2 className="font-mono font-medium text-lg text-ink">Bill coverage</h2>
+            <span className="text-sm text-ink-soft">
               ${totalCoveredSubtotal.toFixed(2)} of ${billSubtotal.toFixed(2)}
             </span>
           </div>
-          <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
+          <div className="w-full h-[3px] bg-paper-deep overflow-hidden">
             <div
-              className={`h-full rounded-full transition-all duration-300 ${coveragePercent >= 100 ? 'bg-green-500' : 'bg-gray-500'}`}
+              className={`h-full transition-all duration-300 ${coveragePercent >= 100 ? 'bg-pine' : 'bg-ink-faint'}`}
               style={{ width: `${coveragePercent}%` }}
             />
           </div>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-sm text-ink-soft mt-1">
             {coveragePercent}% of the bill subtotal is covered
             {coveragePercent < 100 && (
-              <span className="text-amber-600 font-medium"> — ${(billSubtotal - totalCoveredSubtotal).toFixed(2)} remaining</span>
+              <span className="text-flag font-medium"> — ${(billSubtotal - totalCoveredSubtotal).toFixed(2)} remaining</span>
             )}
           </p>
         </div>
 
         {/* Group Summary Dropdown */}
-        <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 mt-6 overflow-hidden">
+        <div className="bg-paper shadow-[0_1px_2px_rgba(25,28,26,0.06)] transition-shadow duration-200 mt-6 overflow-hidden">
           <button
             onClick={() => setGroupOpen(!groupOpen)}
-            className="w-full flex justify-between items-center p-6 text-left hover:bg-gray-50 transition-colors duration-150"
+            className="w-full flex justify-between items-center p-6 text-left hover:bg-paper-edge transition-colors duration-150"
           >
             <div>
-              <h2 className="font-bold text-lg text-gray-900">Group Summary</h2>
-              <p className="text-sm text-gray-500">
+              <h2 className="font-mono font-medium text-lg text-ink">Group summary</h2>
+              <p className="text-sm text-ink-soft">
                 {participants.filter(p => p.submittedAt).length} of {participants.length} submitted
               </p>
             </div>
             <svg
-              className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${groupOpen ? 'rotate-180' : ''}`}
+              className={`w-5 h-5 text-ink-faint transition-transform duration-200 ${groupOpen ? 'rotate-180' : ''}`}
               fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
             >
               <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
@@ -403,7 +407,7 @@ export default function SummaryPage({ params }: { params: Promise<{ id: string }
           </button>
 
           {groupOpen && (
-            <div className="border-t border-gray-200">
+            <div className="border-t border-paper-deep">
               {participants.map((p) => {
                 const isCurrentUser = p.id === currentUserId;
                 const isSubmitted = !!p.submittedAt;
@@ -413,35 +417,35 @@ export default function SummaryPage({ params }: { params: Promise<{ id: string }
                 const isExpanded = expandedParticipant === p.id;
 
                 return (
-                  <div key={p.id} className="border-b border-gray-100 last:border-b-0">
+                  <div key={p.id} className="border-b border-paper-deep last:border-b-0">
                     <button
                       onClick={() => setExpandedParticipant(isExpanded ? null : p.id)}
-                      className="w-full flex items-center justify-between px-6 py-4 text-left hover:bg-gray-50 transition-colors duration-150"
+                      className="w-full flex items-center justify-between px-6 py-4 text-left hover:bg-paper-edge transition-colors duration-150"
                     >
                       <div className="flex items-center gap-3">
                         <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
                           isSubmitted
-                            ? 'bg-green-100 text-green-700'
-                            : 'bg-gray-50 text-gray-400'
+                            ? 'bg-pine/10 text-pine'
+                            : 'bg-paper-edge text-ink-faint'
                         }`}>
                           {isSubmitted ? '✓' : '·'}
                         </div>
                         <div>
-                          <p className="font-semibold text-gray-800">
-                            {p.name}{isCurrentUser && <span className="text-gray-500 text-sm ml-1">(you)</span>}
+                          <p className="font-semibold text-ink">
+                            {p.name}{isCurrentUser && <span className="text-ink-soft text-sm ml-1">(you)</span>}
                           </p>
-                          <p className="text-xs text-gray-400">
+                          <p className="text-xs text-ink-faint">
                             {isSubmitted ? 'Submitted' : 'Pending'}
                           </p>
                         </div>
                       </div>
                       <div className="flex items-center gap-4">
                         <div className="text-right">
-                          <p className="font-semibold text-gray-800">${pSubtotal.toFixed(2)}</p>
-                          <p className="text-xs text-gray-400">{shareOfBill.toFixed(0)}% of bill</p>
+                          <p className="font-semibold text-ink">${pSubtotal.toFixed(2)}</p>
+                          <p className="text-xs text-ink-faint">{shareOfBill.toFixed(0)}% of bill</p>
                         </div>
                         <svg
-                          className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
+                          className={`w-4 h-4 text-ink-faint transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
                           fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
                         >
                           <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
@@ -450,9 +454,9 @@ export default function SummaryPage({ params }: { params: Promise<{ id: string }
                     </button>
 
                     {isExpanded && (
-                      <div className="px-6 pb-4 bg-gray-50">
+                      <div className="px-6 pb-4 bg-paper-edge">
                         {pShares.length === 0 ? (
-                          <p className="text-sm text-gray-400 italic">No items selected yet</p>
+                          <p className="text-sm text-ink-faint italic">No items selected yet</p>
                         ) : (
                           <div className="space-y-1">
                             {pShares.map((share) => {
@@ -460,17 +464,19 @@ export default function SummaryPage({ params }: { params: Promise<{ id: string }
                               if (!item) return null;
                               const shareAmount = item.price * item.qty * share.proportion;
                               return (
-                                <div key={share.itemId} className="flex justify-between text-sm">
-                                  <span className="text-gray-600">
-                                    {item.name} <span className="text-gray-400">({(share.proportion * 100).toFixed(0)}%)</span>
+                                <div key={share.itemId} className="flex items-baseline font-mono text-[0.8125rem]">
+                                  <span className="text-ink-soft">
+                                    {item.name} <span className="text-ink-faint">({(share.proportion * 100).toFixed(0)}%)</span>
                                   </span>
-                                  <span className="text-gray-700">${shareAmount.toFixed(2)}</span>
+                                  <span className="leader" />
+                                  <span className="text-ink tabular-nums">${shareAmount.toFixed(2)}</span>
                                 </div>
                               );
                             })}
-                            <div className="flex justify-between text-sm font-semibold border-t border-gray-200 pt-1 mt-1">
-                              <span className="text-gray-700">Subtotal</span>
-                              <span className="text-gray-800">${pSubtotal.toFixed(2)}</span>
+                            <div className="flex items-baseline font-mono text-[0.8125rem] font-medium border-t border-paper-deep pt-1.5 mt-1.5">
+                              <span className="text-ink">Subtotal</span>
+                              <span className="leader" />
+                              <span className="text-ink tabular-nums">${pSubtotal.toFixed(2)}</span>
                             </div>
                           </div>
                         )}
