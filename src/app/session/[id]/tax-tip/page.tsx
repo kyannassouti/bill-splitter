@@ -5,6 +5,7 @@ import { use, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import ParticipantsBadge from '@/components/ui/ParticipantsBadge';
 import SessionCodeChip from '@/components/ui/SessionCodeChip';
+import { claimFromShare, describeClaim } from '@/lib/units';
 import TipControl from '@/components/ui/TipControl';
 import { SessionTip, isTipSet, saveSessionTip, tipLineLabel, tipShare, useSessionTip } from '@/lib/session-tip';
 
@@ -95,6 +96,9 @@ export default function TaxTipPage({ params }: { params: Promise<{ id: string }>
           itemId: s.item_id,
           proportion: Number(s.proportion),
           splitMethod: s.split_method as 'qty' | 'percentage',
+          count: s.units_count,
+          ways: s.split_ways,
+          covered: s.shares_covered,
         })));
       }
 
@@ -245,7 +249,7 @@ export default function TaxTipPage({ params }: { params: Promise<{ id: string }>
                     <p className="text-ink tabular-nums">${userShare.toFixed(2)}</p>
                   </div>
                   <p className="font-mono text-[0.6875rem] text-ink-faint">
-                    ${item.price.toFixed(2)} × {item.qty} × {(share.proportion * 100).toFixed(0)}%
+                    {describeClaim(claimFromShare(share, item.qty))} × ${item.price.toFixed(2)}
                   </p>
                 </div>
               );

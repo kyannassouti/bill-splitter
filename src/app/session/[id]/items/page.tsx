@@ -7,6 +7,7 @@ import { use, useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import ParticipantsBadge from '@/components/ui/ParticipantsBadge';
 import SessionCodeChip from '@/components/ui/SessionCodeChip';
+import { Claim, EPS, claimColumns } from '@/lib/units';
 import TipButton from '@/components/ui/TipButton';
 import { SessionTip, saveSessionTip, useSessionTip } from '@/lib/session-tip';
 
@@ -28,6 +29,8 @@ export default function ItemsPage({ params }: { params: Promise<{ id: string }> 
   const [showSplitModal, setShowSplitModal] = useState(false);
   const [evenSplitVersion, setEvenSplitVersion] = useState(0);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+  // Items where your claim was cut back because someone else saved theirs first
+  const [changedItems, setChangedItems] = useState<Set<string>>(new Set());
 
   const currentUserId = typeof window !== 'undefined' ? sessionStorage.getItem('participantId') : null;
   const [tip, setTip] = useSessionTip(sessionId);
@@ -110,6 +113,9 @@ export default function ItemsPage({ params }: { params: Promise<{ id: string }> 
             itemId: s.item_id,
             proportion: Number(s.proportion),
             splitMethod: s.split_method as 'qty' | 'percentage',
+            count: s.units_count,
+            ways: s.split_ways,
+            covered: s.shares_covered,
           }));
           setShares(mapped.filter(s => s.participantId === currentUserId));
           setOtherShares(mapped.filter(s => s.participantId !== currentUserId));
@@ -163,6 +169,9 @@ export default function ItemsPage({ params }: { params: Promise<{ id: string }> 
             item_id: string;
             proportion: number;
             split_method: string;
+            units_count: number | null;
+            split_ways: number | null;
+            shares_covered: number | null;
           } | undefined;
 
           if (!record || record.participant_id === currentUserIdRef.current) return;
@@ -173,6 +182,9 @@ export default function ItemsPage({ params }: { params: Promise<{ id: string }> 
             itemId: record.item_id,
             proportion: Number(record.proportion),
             splitMethod: record.split_method as 'qty' | 'percentage',
+            count: record.units_count,
+            ways: record.split_ways,
+            covered: record.shares_covered,
           };
 
           setOtherShares(prev => {
@@ -308,17 +320,22 @@ export default function ItemsPage({ params }: { params: Promise<{ id: string }> 
     setOtherShares(prev => prev.filter(share => share.itemId !== itemId));
   };
 
-  const handleShareUpdate = (itemId: string, proportion: number, splitMethod: 'qty' | 'percentage') => {
+  const handleShareUpdate = (itemId: string, proportion: number, splitMethod: 'qty' | 'percentage', claim: Claim) => {
     if (!currentUserId) return;
     const newSharesList = [...shares];
     const existingIndex = newSharesList.findIndex(
       share => share.itemId === itemId && share.participantId === currentUserId
     );
 
+    const { units_count, split_ways, shares_covered } = claimColumns(claim);
+    const share: ItemShare = {
+      participantId: currentUserId, itemId, proportion, splitMethod,
+      count: units_count, ways: split_ways, covered: shares_covered,
+    };
     if (existingIndex >= 0) {
-      newSharesList[existingIndex] = { participantId: currentUserId, itemId, proportion, splitMethod };
+      newSharesList[existingIndex] = share;
     } else {
-      newSharesList.push({ participantId: currentUserId, itemId, proportion, splitMethod });
+      newSharesList.push(share);
     }
     setShares(newSharesList);
   };
@@ -326,23 +343,73 @@ export default function ItemsPage({ params }: { params: Promise<{ id: string }> 
   const handleEvenSplit = () => {
     if (!currentUserId || items.length === 0) return;
     const proportion = 1 / splitCount;
+    // Everything split N ways: all of each item, one share of N
     const newShares: ItemShare[] = items.map(item => ({
       participantId: currentUserId,
       itemId: item.id,
       proportion,
       splitMethod: 'percentage' as const,
+      count: item.qty,
+      ways: splitCount,
+      covered: 1,
     }));
     setShares(newShares);
     setEvenSplitVersion(v => v + 1);
     setShowSplitModal(false);
   };
 
+  const handleClaimReduced = (itemId: string) => {
+    setChangedItems(prev => new Set(prev).add(itemId));
+    setExpandedItems(prev => new Set(prev).add(itemId));
+  };
+
   const handleContinue = async () => {
     if (!currentUserId) return;
     setSaving(true);
+    setChangedItems(new Set());
+
+    const userShares = shares.filter(s => s.participantId === currentUserId);
+
+    // Claims only save on Continue, so someone else may have saved theirs since this
+    // page last heard. Re-read them; if yours no longer fits, the cards cut it back
+    // to what's left and flag it, and nothing is saved until you look and continue again.
+    const itemIds = items.map(i => i.id);
+    if (itemIds.length > 0) {
+      const { data: latest, error: latestError } = await supabase
+        .from('item_shares')
+        .select('participant_id, item_id, proportion, split_method, units_count, split_ways, shares_covered')
+        .in('item_id', itemIds)
+        .neq('participant_id', currentUserId);
+
+      if (latestError) {
+        console.error('Failed to check claims:', latestError);
+        setSaving(false);
+        return;
+      }
+
+      const latestOthers: ItemShare[] = latest.map(s => ({
+        participantId: s.participant_id,
+        itemId: s.item_id,
+        proportion: Number(s.proportion),
+        splitMethod: s.split_method as 'qty' | 'percentage',
+        count: s.units_count,
+        ways: s.split_ways,
+        covered: s.shares_covered,
+      }));
+      const takenByOthers = (itemId: string) =>
+        latestOthers.filter(s => s.itemId === itemId).reduce((sum, s) => sum + s.proportion, 0);
+      const overClaimed = userShares.some(
+        s => s.proportion > EPS && s.proportion > 1 - takenByOthers(s.itemId) + EPS
+      );
+
+      if (overClaimed) {
+        setOtherShares(latestOthers);
+        setSaving(false);
+        return;
+      }
+    }
 
     // Upsert all shares into item_shares table
-    const userShares = shares.filter(s => s.participantId === currentUserId);
     if (userShares.length > 0) {
       const { error } = await supabase
         .from('item_shares')
@@ -352,6 +419,9 @@ export default function ItemsPage({ params }: { params: Promise<{ id: string }> 
             item_id: s.itemId,
             proportion: s.proportion,
             split_method: s.splitMethod,
+            units_count: s.count ?? null,
+            split_ways: s.ways ?? null,
+            shares_covered: s.covered ?? null,
           })),
           { onConflict: 'participant_id,item_id' }
         );
@@ -456,6 +526,15 @@ export default function ItemsPage({ params }: { params: Promise<{ id: string }> 
           )}
         </div>
 
+        {changedItems.size > 0 && (
+          <div className="mt-4 px-4 py-3 bg-flag/10 border border-flag/30 text-sm text-ink">
+            <p className="font-medium">Someone else claimed part of {
+              items.filter(i => changedItems.has(i.id)).map(i => i.name).join(', ')
+            } first.</p>
+            <p className="mt-0.5 text-ink-soft">Your claim was cut to what&apos;s left. Check it, then tap Continue again.</p>
+          </div>
+        )}
+
         <div className="flex flex-col gap-4 mt-4">
           {items.length === 0 ? (
             <div className="text-center py-12">
@@ -483,6 +562,8 @@ export default function ItemsPage({ params }: { params: Promise<{ id: string }> 
                   return next;
                 })}
                 onShareUpdate={handleShareUpdate}
+                changedByOthers={changedItems.has(item.id)}
+                onClaimReduced={handleClaimReduced}
                 onItemUpdate={handleItemUpdate}
                 onItemDelete={handleItemDelete}
               />

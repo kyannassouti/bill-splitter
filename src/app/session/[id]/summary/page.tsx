@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabase";
 import { use, useState, useEffect, useRef } from 'react';
 import ParticipantsBadge from '@/components/ui/ParticipantsBadge';
 import SessionCodeChip from '@/components/ui/SessionCodeChip';
+import { claimFromShare, describeClaim } from '@/lib/units';
 import { tipLineLabel, tipShare, useSessionTip } from '@/lib/session-tip';
 
 interface ParticipantData {
@@ -129,6 +130,9 @@ export default function SummaryPage({ params }: { params: Promise<{ id: string }
             itemId: s.item_id,
             proportion: Number(s.proportion),
             splitMethod: s.split_method as 'qty' | 'percentage',
+            count: s.units_count,
+            ways: s.split_ways,
+            covered: s.shares_covered,
           }));
           setShares(mapped.filter(s => s.participantId === currentUserId));
           setAllShares(mapped);
@@ -179,6 +183,9 @@ export default function SummaryPage({ params }: { params: Promise<{ id: string }
             item_id: string;
             proportion: number;
             split_method: string;
+            units_count: number | null;
+            split_ways: number | null;
+            shares_covered: number | null;
           } | undefined;
 
           if (!record) return;
@@ -189,6 +196,9 @@ export default function SummaryPage({ params }: { params: Promise<{ id: string }
             itemId: record.item_id,
             proportion: Number(record.proportion),
             splitMethod: record.split_method as 'qty' | 'percentage',
+            count: record.units_count,
+            ways: record.split_ways,
+            covered: record.shares_covered,
           };
 
           const updateShareList = (prev: ItemShare[]) => {
@@ -465,7 +475,7 @@ export default function SummaryPage({ params }: { params: Promise<{ id: string }
                               return (
                                 <div key={share.itemId} className="flex items-baseline font-mono text-[0.8125rem]">
                                   <span className="text-ink-soft">
-                                    {item.name} <span className="text-ink-faint">({(share.proportion * 100).toFixed(0)}%)</span>
+                                    {item.name} <span className="text-ink-faint">({describeClaim(claimFromShare(share, item.qty))})</span>
                                   </span>
                                   <span className="leader" />
                                   <span className="text-ink tabular-nums">${shareAmount.toFixed(2)}</span>
