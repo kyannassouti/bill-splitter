@@ -68,6 +68,10 @@ create table item_shares (
   item_id uuid not null references items(id) on delete cascade,
   proportion decimal not null default 0,
   split_method text not null default 'qty' check (split_method in ('qty', 'percentage')),
+  -- How the claim was entered (proportion stays the source of truth for totals):
+  units_count integer check (units_count >= 0),       -- how many of the item
+  split_ways integer check (split_ways >= 1),         -- people splitting them (1 = just me; null = custom percent)
+  shares_covered integer check (shares_covered >= 1), -- shares of that split this person pays for
   unique (participant_id, item_id)
 );
 
