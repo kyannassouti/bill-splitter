@@ -32,6 +32,12 @@ create table sessions (
   id uuid primary key default gen_random_uuid(),
   code text not null unique default generate_session_code(),
   tax_percent decimal not null default 0.13,
+  -- Tip for the whole bill, set by the host (the first participant).
+  -- 'percent' applies tip_percent to each person's pre-tax subtotal;
+  -- 'amount' splits tip_amount in proportion to each person's subtotal.
+  tip_mode text not null default 'percent' check (tip_mode in ('percent', 'amount')),
+  tip_percent decimal check (tip_percent >= 0 and tip_percent <= 100),
+  tip_amount decimal check (tip_amount >= 0),
   created_at timestamptz not null default now()
 );
 
@@ -40,7 +46,7 @@ create table participants (
   id uuid primary key default gen_random_uuid(),
   session_id uuid not null references sessions(id) on delete cascade,
   name text not null,
-  tip_percent integer default 0,
+  tip_percent integer default 0,  -- unused: tip now lives on sessions
   submitted_at timestamptz,
   created_at timestamptz not null default now()
 );
@@ -64,3 +70,6 @@ create table item_shares (
   split_method text not null default 'qty' check (split_method in ('qty', 'percentage')),
   unique (participant_id, item_id)
 );
+
+-- Live updates: everyone in a session sees items, claims, people and the tip change
+alter publication supabase_realtime add table participants, items, item_shares, sessions;

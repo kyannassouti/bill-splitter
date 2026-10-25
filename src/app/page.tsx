@@ -27,6 +27,9 @@ const STEPS = [
  * someone opening it alone still sees what a real table looks like.
  */
 async function seedSampleSession(sessionId: string) {
+    // The sample host already set the tip, the way a real payer would.
+    await supabase.from('sessions').update({ tip_mode: 'percent', tip_percent: 18 }).eq('id', sessionId);
+
     const { data: items } = await supabase
         .from('items')
         .insert(placeholderItems.map(item => ({ session_id: sessionId, ...item })))
@@ -43,7 +46,6 @@ async function seedSampleSession(sessionId: string) {
         .insert(sampleParticipants.map(person => ({
             session_id: sessionId,
             name: person.name,
-            tip_percent: person.tipPercent,
             submitted_at: person.submitted ? now : null,
         })))
         .select('id, name');
