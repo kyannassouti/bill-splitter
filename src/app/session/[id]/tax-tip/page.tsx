@@ -5,6 +5,8 @@ import { use, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import ParticipantsBadge from '@/components/ui/ParticipantsBadge';
 import SessionCodeChip from '@/components/ui/SessionCodeChip';
+import TipControl from '@/components/ui/TipControl';
+import { SessionTip, isTipSet, saveSessionTip, tipLineLabel, tipShare, useSessionTip } from '@/lib/session-tip';
 
 
 export default function TaxTipPage({ params }: { params: Promise<{ id: string }> }) {
@@ -20,8 +22,7 @@ export default function TaxTipPage({ params }: { params: Promise<{ id: string }>
   const [taxPercent, setTaxPercent] = useState(0.13);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [selectedTipPercent, setSelectedTipPercent] = useState<number | undefined>();
-  const [customTip, setCustomTip] = useState(false);
+  const [tip, setTip, tipLoaded] = useSessionTip(sessionId);
 
   useEffect(() => {
     async function fetchData() {
@@ -138,7 +139,9 @@ export default function TaxTipPage({ params }: { params: Promise<{ id: string }>
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      // Not removeChannel: when the last channel goes it closes the shared connection,
+      // and the next page's channels then fail to connect without any error.
+      channel.unsubscribe();
     };
   }, [sessionId]);
 
@@ -160,8 +163,16 @@ export default function TaxTipPage({ params }: { params: Promise<{ id: string }>
   // Calculate tax
   const taxAmount = subtotal * taxPercent;
 
-  // Calculate tip amount
-  const tipAmount = selectedTipPercent ? (subtotal) * (selectedTipPercent / 100) : 0;
+  // Tip is set once for the whole bill by the host (whoever started the session, so joined first)
+  const host = participantNames[0];
+  const isHost = !!host && host.id === currentUserId;
+  const billSubtotal = items.reduce((sum, item) => sum + item.price * item.qty, 0);
+  const tipAmount = tipShare(tip, subtotal, billSubtotal);
+
+  const handleTipChange = (next: SessionTip) => {
+    setTip(next);
+    if (sessionId) saveSessionTip(sessionId, next);
+  };
 
   // Calculate final total
   const finalTotal = subtotal + taxAmount + tipAmount;
@@ -170,10 +181,10 @@ export default function TaxTipPage({ params }: { params: Promise<{ id: string }>
     if (!currentUserId) return;
     setSaving(true);
 
-    // Save tip_percent and mark as submitted
+    // Mark as submitted (the tip lives on the session, not on each person)
     const { error } = await supabase
       .from('participants')
-      .update({ tip_percent: selectedTipPercent || 0, submitted_at: new Date().toISOString() })
+      .update({ submitted_at: new Date().toISOString() })
       .eq('id', currentUserId);
 
     if (error) {
@@ -273,52 +284,21 @@ export default function TaxTipPage({ params }: { params: Promise<{ id: string }>
       <div className="bg-paper shadow-[0_1px_2px_rgba(25,28,26,0.06)] transition-shadow duration-200 p-6 mb-4">
         <h2 className="font-mono font-medium text-lg text-ink mb-3">Tip</h2>
 
-        <div className="flex flex-col items-start gap-3">
-          <div className="flex flex-wrap items-center gap-2">
-            {[15, 18, 20, 25].map((p) => (
-              <button
-                key={p}
-                onClick={() => { setCustomTip(false); setSelectedTipPercent(p); }}
-                className={`font-medium px-4 py-2 border border-paper-deep bg-paper text-ink hover:bg-paper-edge transition-colors duration-150 ${
-                  !customTip && selectedTipPercent === p ? 'outline-none ring-2 ring-pine bg-pine/5' : ''
-                }`}
-              >
-                {p}%
-              </button>
-            ))}
-            <button
-              onClick={() => { setCustomTip(true); setSelectedTipPercent(undefined); }}
-              className={`font-medium px-4 py-2 border border-paper-deep bg-paper text-ink hover:bg-paper-edge transition-colors duration-150 ${
-                customTip ? 'outline-none ring-2 ring-pine bg-pine/5' : ''
-              }`}
-            >
-              Custom
-            </button>
-          </div>
-          {customTip && (
-            <div className="flex items-center gap-2">
-              <input
-                type="number"
-                min="0"
-                max="100"
-                value={selectedTipPercent ?? ''}
-                onChange={(e) => {
-                  const val = e.target.value === '' ? undefined : Number(e.target.value);
-                  if (val === undefined || (val >= 0 && val <= 100)) {
-                    setSelectedTipPercent(val);
-                  }
-                }}
-                onFocus={(e) => e.target.select()}
-                placeholder="0"
-                className="w-20 px-3 py-2 border border-paper-deep text-center focus:outline-none focus:ring-2 focus:ring-pine"
-              />
-              <span className="text-ink font-bold">%</span>
-            </div>
-          )}
-        </div>
+        {isHost ? (
+          // Remount once loaded so the editor's inputs start from the stored tip
+          <TipControl key={tipLoaded ? 'loaded' : 'loading'} tip={tip} onChange={handleTipChange} />
+        ) : (
+          <p className="text-sm text-ink-soft">
+            {isTipSet(tip)
+              ? tip.mode === 'percent'
+                ? `${host?.name ?? 'The host'} tipped ${tip.percent}% on the bill before tax. Your share of it is below.`
+                : `${host?.name ?? 'The host'} tipped $${(tip.amount ?? 0).toFixed(2)} on the bill. You pay a part of it in proportion to what you ordered.`
+              : `${host?.name ?? 'The host'} hasn't set the tip yet. Your total will update as soon as they do.`}
+          </p>
+        )}
 
         <div className="border-t border-ink/15 pt-2 mt-4 flex items-baseline font-mono text-[0.8125rem] font-medium">
-          <p className="text-ink">Tip ({selectedTipPercent || 0}%)</p>
+          <p className="text-ink">Tip ({tipLineLabel(tip)})</p>
           <span className="leader" />
           <p className="text-ink tabular-nums">${tipAmount.toFixed(2)}</p>
         </div>

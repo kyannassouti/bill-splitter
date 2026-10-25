@@ -4,11 +4,11 @@ import { supabase } from "@/lib/supabase";
 import { use, useState, useEffect, useRef } from 'react';
 import ParticipantsBadge from '@/components/ui/ParticipantsBadge';
 import SessionCodeChip from '@/components/ui/SessionCodeChip';
+import { tipLineLabel, tipShare, useSessionTip } from '@/lib/session-tip';
 
 interface ParticipantData {
   id: string;
   name: string;
-  tipPercent: number;
   submittedAt: string | null;
 }
 
@@ -19,13 +19,13 @@ export default function SummaryPage({ params }: { params: Promise<{ id: string }
 
   const [sessionCode, setSessionCode] = useState('');
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const [tip] = useSessionTip(sessionId);
   const [userName, setUserName] = useState('');
   const [items, setItems] = useState<Item[]>([]);
   const [shares, setShares] = useState<ItemShare[]>([]);
   const [allShares, setAllShares] = useState<ItemShare[]>([]);
   const [participants, setParticipants] = useState<ParticipantData[]>([]);
   const [taxPercent, setTaxPercent] = useState(0.13);
-  const [tipPercent, setTipPercent] = useState(0);
   const [loading, setLoading] = useState(true);
   const [groupOpen, setGroupOpen] = useState(false);
   const [expandedParticipant, setExpandedParticipant] = useState<string | null>(null);
@@ -43,10 +43,10 @@ export default function SummaryPage({ params }: { params: Promise<{ id: string }
         return;
       }
 
-      // Fetch participant info (name, tip_percent)
+      // Fetch participant info
       const { data: participant, error: participantError } = await supabase
         .from('participants')
-        .select('name, tip_percent, session_id')
+        .select('name, session_id')
         .eq('id', currentUserId)
         .single();
 
@@ -57,7 +57,6 @@ export default function SummaryPage({ params }: { params: Promise<{ id: string }
       }
 
       setUserName(participant.name);
-      setTipPercent(participant.tip_percent ?? 0);
 
       // Fetch session (tax_percent, code)
       const { data: session, error: sessionError } = await supabase
@@ -79,7 +78,7 @@ export default function SummaryPage({ params }: { params: Promise<{ id: string }
       // Fetch all participants in this session
       const { data: participantsData, error: participantsError } = await supabase
         .from('participants')
-        .select('id, name, tip_percent, submitted_at')
+        .select('id, name, submitted_at')
         .eq('session_id', session.id)
         .order('created_at', { ascending: true });
 
@@ -89,7 +88,6 @@ export default function SummaryPage({ params }: { params: Promise<{ id: string }
         setParticipants(participantsData.map(p => ({
           id: p.id,
           name: p.name,
-          tipPercent: p.tip_percent ?? 0,
           submittedAt: p.submitted_at,
         })));
       }
@@ -220,7 +218,6 @@ export default function SummaryPage({ params }: { params: Promise<{ id: string }
             id: string;
             name: string;
             session_id: string;
-            tip_percent: number;
             submitted_at: string | null;
           } | undefined;
 
@@ -232,7 +229,6 @@ export default function SummaryPage({ params }: { params: Promise<{ id: string }
               return [...prev, {
                 id: record.id,
                 name: record.name,
-                tipPercent: record.tip_percent ?? 0,
                 submittedAt: record.submitted_at,
               }];
             });
@@ -240,7 +236,7 @@ export default function SummaryPage({ params }: { params: Promise<{ id: string }
             setParticipants(prev =>
               prev.map(p =>
                 p.id === record.id
-                  ? { ...p, name: record.name, tipPercent: record.tip_percent ?? 0, submittedAt: record.submitted_at }
+                  ? { ...p, name: record.name, submittedAt: record.submitted_at }
                   : p
               )
             );
@@ -252,7 +248,9 @@ export default function SummaryPage({ params }: { params: Promise<{ id: string }
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      // Not removeChannel: when the last channel goes it closes the shared connection,
+      // and the next page's channels then fail to connect without any error.
+      channel.unsubscribe();
     };
   }, [sessionId, currentUserId]);
 
@@ -269,12 +267,12 @@ export default function SummaryPage({ params }: { params: Promise<{ id: string }
     return total;
   }, 0);
 
-  const taxAmount = subtotal * taxPercent;
-  const tipAmount = subtotal * (tipPercent / 100);
-  const finalTotal = subtotal + taxAmount + tipAmount;
-
   // Bill-wide calculations
   const billSubtotal = items.reduce((sum, item) => sum + item.price * item.qty, 0);
+
+  const taxAmount = subtotal * taxPercent;
+  const tipAmount = tipShare(tip, subtotal, billSubtotal);
+  const finalTotal = subtotal + taxAmount + tipAmount;
 
   const totalCoveredSubtotal = allShares.reduce((sum, share) => {
     const item = items.find(i => i.id === share.itemId);
@@ -353,7 +351,7 @@ export default function SummaryPage({ params }: { params: Promise<{ id: string }
               <p className="tabular-nums">${taxAmount.toFixed(2)}</p>
             </div>
             <div className="flex items-baseline font-mono text-sm">
-              <p>Tip ({tipPercent}%)</p>
+              <p>Tip ({tipLineLabel(tip)})</p>
               <span className="leader" />
               <p className="tabular-nums">${tipAmount.toFixed(2)}</p>
             </div>

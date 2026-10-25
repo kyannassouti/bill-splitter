@@ -7,6 +7,8 @@ import { use, useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import ParticipantsBadge from '@/components/ui/ParticipantsBadge';
 import SessionCodeChip from '@/components/ui/SessionCodeChip';
+import TipButton from '@/components/ui/TipButton';
+import { SessionTip, saveSessionTip, useSessionTip } from '@/lib/session-tip';
 
 
 export default function ItemsPage({ params }: { params: Promise<{ id: string }> }) {
@@ -28,6 +30,7 @@ export default function ItemsPage({ params }: { params: Promise<{ id: string }> 
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
 
   const currentUserId = typeof window !== 'undefined' ? sessionStorage.getItem('participantId') : null;
+  const [tip, setTip] = useSessionTip(sessionId);
 
   // Ref to track item IDs for use in realtime callbacks without causing re-subscriptions
   const itemIdsRef = useRef<string[]>([]);
@@ -221,7 +224,9 @@ export default function ItemsPage({ params }: { params: Promise<{ id: string }> 
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      // Not removeChannel: when the last channel goes it closes the shared connection,
+      // and the next page's channels then fail to connect without any error.
+      channel.unsubscribe();
     };
   }, [sessionId]);
 
@@ -384,6 +389,16 @@ export default function ItemsPage({ params }: { params: Promise<{ id: string }> 
   const subtotal = calculateSubtotal();
   const hasSelections = shares.some(s => s.participantId === currentUserId && s.proportion > 0);
 
+  // Whoever started the session joined first, so they're the host who sets the tip.
+  const host = participantNames[0];
+  const isHost = !!host && host.id === currentUserId;
+  const billSubtotal = items.reduce((sum, item) => sum + item.price * item.qty, 0);
+
+  const handleTipChange = (next: SessionTip) => {
+    setTip(next);
+    if (sessionId) saveSessionTip(sessionId, next);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-paper-edge px-5 sm:px-8 pt-8 pb-40">
@@ -419,9 +434,16 @@ export default function ItemsPage({ params }: { params: Promise<{ id: string }> 
         <div className="flex justify-between items-start mb-2">
           <div>
             <h1 className="text-2xl sm:text-3xl font-mono font-medium tracking-[-0.02em] text-ink">Select your items</h1>
-            <div className="flex items-center gap-2 mt-1">
+            <div className="flex flex-wrap items-center gap-2 mt-1">
               <SessionCodeChip code={id} />
               <ParticipantsBadge participants={participantNames} currentUserId={currentUserId} />
+              <TipButton
+                tip={tip}
+                billSubtotal={billSubtotal}
+                isHost={isHost}
+                hostName={host?.name ?? 'The host'}
+                onChange={handleTipChange}
+              />
             </div>
           </div>
           {items.length > 0 && (
