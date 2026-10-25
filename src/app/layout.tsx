@@ -17,7 +17,7 @@ const plexMono = IBM_Plex_Mono({
 export const metadata: Metadata = {
   title: "Bill Splitter — everyone claims their own items",
   description:
-    "Share a six-letter code. Everyone opens the bill on their own phone and claims exactly what they had. Totals update live, tax and tip included.",
+    "Scan one QR code and everyone opens the bill on their own phone and claims exactly what they had. Totals update live, tax and tip included.",
 };
 
 export default function RootLayout({

@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabase";
 import { use, useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import ParticipantsBadge from '@/components/ui/ParticipantsBadge';
-import SessionQr from '@/components/ui/SessionQr';
+import SessionCodeChip from '@/components/ui/SessionCodeChip';
 
 
 export default function ItemsPage({ params }: { params: Promise<{ id: string }> }) {
@@ -24,7 +24,6 @@ export default function ItemsPage({ params }: { params: Promise<{ id: string }> 
   const [participantCount, setParticipantCount] = useState(1);
   const [splitCount, setSplitCount] = useState(1);
   const [showSplitModal, setShowSplitModal] = useState(false);
-  const [showQr, setShowQr] = useState(false);
   const [evenSplitVersion, setEvenSplitVersion] = useState(0);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
 
@@ -387,7 +386,7 @@ export default function ItemsPage({ params }: { params: Promise<{ id: string }> 
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-paper-edge px-5 py-8 sm:p-8 pb-24">
+      <div className="min-h-screen bg-paper-edge px-5 sm:px-8 pt-8 pb-40">
         <div className="max-w-2xl mx-auto">
           <div className="h-9 w-56 bg-paper-deep animate-skeleton mb-2" />
           <div className="h-5 w-32 bg-paper-deep rounded-full animate-skeleton mb-6" />
@@ -415,22 +414,13 @@ export default function ItemsPage({ params }: { params: Promise<{ id: string }> 
   }
 
   return (
-    <div className="min-h-screen bg-paper-edge px-5 py-8 sm:p-8 pb-24">
+    <div className="min-h-screen bg-paper-edge px-5 sm:px-8 pt-8 pb-40">
       <div className="max-w-2xl mx-auto">
         <div className="flex justify-between items-start mb-2">
           <div>
             <h1 className="text-2xl sm:text-3xl font-mono font-medium tracking-[-0.02em] text-ink">Select your items</h1>
             <div className="flex items-center gap-2 mt-1">
-              <button
-                onClick={() => setShowQr(true)}
-                title="Show the QR code and link for this session"
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-pine/10 text-pine font-mono text-xs tracking-[0.2em] hover:bg-pine/20 transition-colors duration-150"
-              >
-                {id}
-                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0113.5 9.375v-4.5zM13.5 14.25h2.25v2.25H13.5zM18 18.75h2.25V21H18zM13.5 18.75h2.25V21H13.5zM18 14.25h2.25v2.25H18z" />
-                </svg>
-              </button>
+              <SessionCodeChip code={id} />
               <ParticipantsBadge participants={participantNames} currentUserId={currentUserId} />
             </div>
           </div>
@@ -485,8 +475,6 @@ export default function ItemsPage({ params }: { params: Promise<{ id: string }> 
           + Add an item
         </button>
       </div>
-
-      {showQr && <SessionQr code={id} onClose={() => setShowQr(false)} />}
 
       {showAddModal && (
         <AddItemModal
@@ -551,7 +539,7 @@ export default function ItemsPage({ params }: { params: Promise<{ id: string }> 
         </div>
       )}
 
-      <div className="fixed bottom-0 left-0 right-0 bg-paper/95 backdrop-blur-sm border-t border-paper-deep p-4">
+      <div className="fixed bottom-0 left-0 right-0 bg-paper/95 backdrop-blur-sm border-t border-paper-deep px-4 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
         <div className="max-w-2xl mx-auto flex justify-between items-center">
           <div>
             <p className="font-mono text-[0.6875rem] uppercase tracking-[0.18em] text-ink-soft">Your subtotal</p>
