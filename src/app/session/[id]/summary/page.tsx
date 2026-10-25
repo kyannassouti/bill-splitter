@@ -3,6 +3,7 @@ import { Item, ItemShare } from "@/types/types";
 import { supabase } from "@/lib/supabase";
 import { use, useState, useEffect, useRef } from 'react';
 import ParticipantsBadge from '@/components/ui/ParticipantsBadge';
+import SessionCodeChip from '@/components/ui/SessionCodeChip';
 
 interface ParticipantData {
   id: string;
@@ -329,7 +330,7 @@ export default function SummaryPage({ params }: { params: Promise<{ id: string }
       <div className="max-w-2xl mx-auto">
         <h1 className="text-2xl sm:text-3xl font-mono font-medium tracking-[-0.02em] text-ink mb-2">Final summary</h1>
         <div className="flex items-center gap-2 mb-6">
-          <span className="inline-flex items-center px-2.5 py-1 bg-pine/10 text-pine font-mono text-xs tracking-[0.2em]">{sessionCode || id}</span>
+          <SessionCodeChip code={sessionCode || id} />
           <ParticipantsBadge participants={participants.map(p => ({ id: p.id, name: p.name }))} currentUserId={currentUserId} />
         </div>
 

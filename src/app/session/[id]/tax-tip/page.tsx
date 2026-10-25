@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabase";
 import { use, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import ParticipantsBadge from '@/components/ui/ParticipantsBadge';
+import SessionCodeChip from '@/components/ui/SessionCodeChip';
 
 
 export default function TaxTipPage({ params }: { params: Promise<{ id: string }> }) {
@@ -186,7 +187,7 @@ export default function TaxTipPage({ params }: { params: Promise<{ id: string }>
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-paper-edge px-5 py-8 sm:p-8 pb-24">
+      <div className="min-h-screen bg-paper-edge px-5 sm:px-8 pt-8 pb-40">
         <div className="max-w-2xl mx-auto">
           <div className="h-9 w-40 bg-paper-deep animate-skeleton mb-2" />
           <div className="h-5 w-32 bg-paper-deep rounded-full animate-skeleton mb-6" />
@@ -205,11 +206,11 @@ export default function TaxTipPage({ params }: { params: Promise<{ id: string }>
   }
 
   return (
-    <div className="min-h-screen bg-paper-edge px-5 py-8 sm:p-8 pb-24">
+    <div className="min-h-screen bg-paper-edge px-5 sm:px-8 pt-8 pb-40">
       <div className="max-w-2xl mx-auto">
         <h1 className="text-2xl sm:text-3xl font-mono font-medium tracking-[-0.02em] text-ink mb-2">Tax and tip</h1>
         <div className="flex items-center gap-2 mb-6">
-          <span className="inline-flex items-center px-2.5 py-1 bg-pine/10 text-pine font-mono text-xs tracking-[0.2em]">{id}</span>
+          <SessionCodeChip code={id} />
           <ParticipantsBadge participants={participantNames} currentUserId={currentUserId} />
         </div>
 
@@ -325,7 +326,7 @@ export default function TaxTipPage({ params }: { params: Promise<{ id: string }>
 
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 bg-paper/95 backdrop-blur-sm border-t border-paper-deep p-4">
+      <div className="fixed bottom-0 left-0 right-0 bg-paper/95 backdrop-blur-sm border-t border-paper-deep px-4 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
         <div className="max-w-2xl mx-auto flex justify-between items-center">
           <button
             onClick={() => router.push(`/session/${id}/items`)}

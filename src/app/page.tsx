@@ -13,8 +13,8 @@ const STEPS = [
     body: 'One person enters the line items once. Anyone at the table can add whatever got missed.',
   },
   {
-    label: 'Share the code',
-    body: 'Six letters. No app to install, no account to make, no one added to a group chat.',
+    label: 'Scan to join',
+    body: 'Everyone points their camera at one QR code. No app to install, no account to make — and a six-character code as backup.',
   },
   {
     label: 'Claim your share',
@@ -151,7 +151,7 @@ export default function Home() {
             return;
         }
         if (!sessionCode.trim()) {
-            setError('Enter the six-letter code');
+            setError('Enter the six-character code');
             return;
         }
         setLoading(true);
@@ -302,7 +302,7 @@ export default function Home() {
                             className="mt-6 max-w-xl text-[1.0625rem] leading-relaxed text-ink-soft animate-rise-in"
                             style={{ animationDelay: '160ms' }}
                         >
-                            Share a six-letter code. Everyone opens the bill on their own phone and
+                            Everyone scans one QR code and opens the bill on their own phone, then
                             takes exactly what they had — half the pizza, one of the three garlic
                             breads. Totals update live, tax and tip included.
                         </p>
@@ -315,7 +315,7 @@ export default function Home() {
                                 Start a split
                             </button>
                             <button className={secondaryClass} onClick={() => setMode('join')}>
-                                Join with a code
+                                Join a split
                             </button>
                         </div>
 
